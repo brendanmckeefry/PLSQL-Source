@@ -1,6 +1,12 @@
---
+--########################################################################################################
 -- FT_ERRNUMS  (Package) 
---
+-- 
+-- A list of error numbers to be used instead of hard coding. 
+-- Also registers exceptions Freshtrade & Named
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE FT_ERRNUMS AS 
 
 -- ********** Named Oracle Exceptions **********

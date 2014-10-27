@@ -1,3 +1,11 @@
+--########################################################################################################
+-- FT_COST_WRITES  (Package Body) 
+-- 
+-- Contains methods to write ITECHG/EXPCHA
+-- 
+-- Version 1.0
+--########################################################################################################
+
 create or replace PACKAGE BODY FT_COST_WRITES AS
 
   CURSOR APPORTION_PO_RECS(EXCCHAREC_IN EXPCHA.EXCCHAREC%TYPE) IS

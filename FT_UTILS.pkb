@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- FT_UTILS  (Package Body) 
---
+-- 
+-- Generic Freshtrade utility methods
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_UTILS AS
 
   PROCEDURE GET_SYSPREFS(SYSPREFS_INOUT IN OUT SYS_PREFS)

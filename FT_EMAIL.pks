@@ -1,6 +1,12 @@
---
+--########################################################################################################
 -- FT_EMAIL  (Package) 
---
+-- 
+-- Contains methods to generate emails to be passed to 
+-- standard BSDL routine
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE FT_EMAIL AS 
 
   PROCEDURE PROCESS_EMAILS;

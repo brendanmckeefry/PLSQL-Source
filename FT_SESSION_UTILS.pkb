@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- FT_SESSION_UTILS  (Package Body) 
---
+-- 
+-- Methods related retrieving session related information
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_SESSION_UTILS AS
 
   G_SID       INTEGER := SYS_CONTEXT('USERENV','SID');

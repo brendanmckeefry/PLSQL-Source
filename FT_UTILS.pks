@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- FT_UTILS  (Package) 
---
+-- 
+-- Generic Freshtrade utility methods
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE FT_UTILS AS 
 
   TYPE SYS_PREFS IS TABLE OF WIZSYSPREF.SYSPREFVALUE%TYPE INDEX BY VARCHAR2(30);

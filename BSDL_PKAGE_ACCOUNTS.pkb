@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- BSDL_PKAGE_ACCOUNTS  (Package Body) 
---
+-- 
+-- Utility methods related to Freshtrade accounts
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY BSDL_PKAGE_ACCOUNTS
 AS
 

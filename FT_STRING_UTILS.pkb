@@ -1,6 +1,11 @@
---
--- FT_STRING_UTILS  (Package Body) 
---
+--########################################################################################################
+-- FT_STRING_UTILS (Package Body) 
+-- 
+-- Utility methods relating to strings
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_STRING_UTILS AS
 
   PROCEDURE STRIPOUTCHAR(SRCSTR_INOUT IN OUT VARCHAR2, STRIPCHAR_IN IN VARCHAR2)

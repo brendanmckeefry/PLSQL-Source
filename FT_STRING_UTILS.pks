@@ -1,6 +1,11 @@
---
--- FT_STRING_UTILS  (Package) 
---
+--########################################################################################################
+-- FT_STRING_UTILS (Package) 
+-- 
+-- Utility methods relating to strings
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE FT_STRING_UTILS AS 
 
   TYPE TYPE_STRING_TOKENS IS TABLE OF VARCHAR2(30) INDEX BY VARCHAR2(30);

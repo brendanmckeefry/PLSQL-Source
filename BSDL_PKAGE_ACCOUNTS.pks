@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- BSDL_PKAGE_ACCOUNTS  (Package) 
---
+-- 
+-- Utility methods related to Freshtrade accounts
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BSDL_PKAGE_ACCOUNTS
 
 

@@ -1,6 +1,11 @@
+--########################################################################################################
+-- CONST  (Package)
+-- 
+-- Contains a list of Freshtrade constants
 --
--- CONST  (Package) 
---
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE CONST AS 
   
   -- Freshtrade Constants

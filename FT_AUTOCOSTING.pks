@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- FT_AUTOCOSTING  (Package) 
---
+-- 
+-- Contains methods related to autocosting table
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE FT_AUTOCOSTING AS
 
   PROCEDURE ENQUEUE_LITRECS(LITRECS_IN RECORD_NUMBERS, COSTCHNGTYPE_IN AUTOCOSTTYPES.COSTCHNGTYPENO%TYPE);

@@ -1,6 +1,11 @@
---
--- FT_AUTOCOSTING  (Package Body) 
---
+--########################################################################################################
+-- FT_AUTOCOSTING  (Package Body)
+-- 
+-- Contains methods related to autocosting table
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_AUTOCOSTING AS
   
   PROCESSTODO     INTEGER := 1;

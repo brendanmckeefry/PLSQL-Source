@@ -1,3 +1,11 @@
+--########################################################################################################
+-- FT_COSTING  (Package Body) 
+-- 
+-- Contains methods to calculate costs from the costing module
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_COSTING AS
 
   SYS_CHNGAFTCLOSE      BOOLEAN := TO_BOOLEAN(FT_UTILS.GET_SYSPREF('DoNotChangeAccrualsWhenPOClose'));

@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- FT_COST_WRITES  (Package) 
---
+-- 
+-- Contains methods to write ITECHG/EXPCHA
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE FT_COST_WRITES AS
 
   PADTYPE_COSTCHNG    CONSTANT INTEGER := 1;

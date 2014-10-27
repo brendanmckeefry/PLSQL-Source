@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- FT_PROFITISELOTS  (Package Body) 
---
+-- 
+-- Methods related to profitising lots
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_PROFITISELOTS AS
 
   PROCEDURE LOTPROFITABILITY(REQDISTSTAB_IN VARCHAR2, AUTOSALESTAB_IN VARCHAR2)

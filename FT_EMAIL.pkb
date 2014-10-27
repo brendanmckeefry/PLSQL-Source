@@ -1,6 +1,12 @@
---
+--########################################################################################################
 -- FT_EMAIL  (Package Body) 
---
+-- 
+-- Contains methods to generate emails to be passed to 
+-- standard BSDL routine
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_EMAIL AS
   
   MSGINTRO    CONSTANT VARCHAR2(2000) := 'This is a message from the Freshtrade Email Service' || CONST.CR || 'The following items have been flagged for your attention:' || CONST.CR || CONST.CR;

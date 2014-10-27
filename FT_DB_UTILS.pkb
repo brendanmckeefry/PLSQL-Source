@@ -1,6 +1,11 @@
---
+--########################################################################################################
 -- FT_DB_UTILS  (Package Body) 
---
+-- 
+-- Contains database related utility methods
+-- 
+-- Version 1.0
+--########################################################################################################
+
 CREATE OR REPLACE PACKAGE BODY FT_DB_UTILS AS
 
   FUNCTION TABLE_EXISTS(TABLE_NAME_IN VARCHAR2) RETURN BOOLEAN 
