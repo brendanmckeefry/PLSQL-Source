@@ -145,7 +145,7 @@ CREATE OR REPLACE PACKAGE BODY FT_PROFITISELOTS AS
     SQL_STMT  :=  'UPDATE LOTPROFITSALOFF' ||  CONST.CR ||
                   'SET FullySoldInvoiced = NVL((SELECT MIN(CASE WHEN lotitercvd.RcvdQty = lotitesold.SoldQty THEN 1 ELSE 0 END)' ||  CONST.CR ||
                   '                             FROM 	(SELECT isttab.LitIteNo, SUM(NVL(isttab.TotQty, 0)) AS RcvdQty FROM ' || REQDISTSTAB_IN || ' isttab GROUP BY LitIteNo) lotitercvd,' ||  CONST.CR ||
-                  '                                   (SELECT salestab.LitIteNo, SUM(NVL(salestab.DelLitQty, 0.0)) AS SoldQty FROM ' || AUTOSALESTAB_IN || q'[ salestab WHERE DelStatus = 'Inv' GROUP BY LitIteNo) lotitesold]' ||  CONST.CR ||
+                  '                                   (SELECT salestab.LitIteNo, SUM(NVL(salestab.DelLitQty, 0.0)) AS SoldQty FROM ' || AUTOSALESTAB_IN || q'[ salestab WHERE DelDetStatus = 'Inv' GROUP BY LitIteNo) lotitesold]' ||  CONST.CR ||
                   '                             WHERE lotitercvd.LitIteNo = lotitesold.LitIteNo(+)' ||  CONST.CR ||
                   '                               AND lotitercvd.LitIteNo = lotprofitsaloff.LitIteNo), 0)' ||  CONST.CR ||
                   'WHERE lotprofitsaloff.LitIteNo IN (SELECT isttab.LitIteNo FROM ' || REQDISTSTAB_IN || ' isttab)';
