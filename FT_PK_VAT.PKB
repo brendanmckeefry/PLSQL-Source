@@ -402,6 +402,18 @@ PROCEDURE CALCDELPRICEVAT(  CLARECNO_IN     IN  ACCCLASS.CLARECNO%TYPE,
 
     END CALCDELPRICEVAT;
 
+
+    FUNCTION  CURRENTVERSION
+              RETURN VARCHAR2 IS Ret_Version VARCHAR(12);
+       -- Returns the current version number so that calling programs can detect if a version is out of date
+       -- As with the rest of Freshtrade the version number is in the format nn.nn.nn so it has to be returned as
+       -- a string
+    BEGIN
+
+       RETURN cVersionControlNo;
+
+    END CURRENTVERSION;
+
 END FT_PK_VAT;
 /
 
