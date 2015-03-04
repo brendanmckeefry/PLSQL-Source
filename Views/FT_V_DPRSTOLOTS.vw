@@ -1,4 +1,4 @@
-COMMENT ON TABLE FT_V_PO IS  'v1.0.0 - View sales details and profitability by lot';
+COMMENT ON TABLE FT_V_DPRSTOLOTS IS  'v1.0.0 - View sales details and profitability by lot';
 
 CREATE OR REPLACE FORCE VIEW FT_V_DPRSTOLOTS
 (

@@ -1,4 +1,4 @@
-COMMENT ON TABLE FT_V_PO IS  'v1.0.0 - Internal Cost View';
+COMMENT ON TABLE FT_V_COSTS IS  'v1.0.0 - Internal Cost View';
 
 CREATE OR REPLACE FORCE VIEW FT_V_COSTS
 (
