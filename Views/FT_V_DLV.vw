@@ -1,4 +1,4 @@
-COMMENT ON TABLE FT_V_DLV IS  'v1.0.0 - Internal Delivery View';
+COMMENT ON TABLE FT_V_DLV IS  'v1.0.1 - Internal Delivery View';
 
 CREATE OR REPLACE FORCE VIEW FT_V_DLV
 (

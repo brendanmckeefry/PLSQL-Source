@@ -25,8 +25,7 @@
 
 *********************************************************************************	                                        
 
-	Spec Version 1.0.0
-  	Body Version 1.0.0                             
+	Spec Version 1.0.0                         
 
 	Modified by: Paul Michael Thomas
 	Modified on: 01/01/2015      	
