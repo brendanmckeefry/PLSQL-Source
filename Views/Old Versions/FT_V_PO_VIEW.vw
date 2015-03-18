@@ -1,4 +1,10 @@
-COMMENT ON TABLE FT_V_PO_VIEWIS  'v1.0.0 - External Purchase Order View';
+--########################################################################################################
+-- FT_V_PO_VIEW (View)
+-- 
+-- Presentation view to display purchase order details
+-- 
+-- Version 1.0
+--########################################################################################################
 
 CREATE OR REPLACE FORCE VIEW FT_V_PO_VIEW
 (
@@ -37,12 +43,7 @@ CREATE OR REPLACE FORCE VIEW FT_V_PO_VIEW
    PAYMENTTERMSSHORT,
    DISPATCHLOCATION,
    RECEIVINGTYPE,
-   LITBUYER,
-   LITBUYERNO,
-   LITITENO,
-   ONFRUITRESERVE,
-   PROFITISEEXCEPTION,
-   ISOVERSOLD
+   LITBUYER
 )
 AS
    SELECT PO_VIEW.PORNO AS PONUMBER,
@@ -80,12 +81,7 @@ AS
           PAYTERMS.LKUPSHORTDESC AS PAYMENTTERMSSHORT,
           DISPATCHLOC.DPTCHLOCDESC AS DISPATCHLOCATION,
           RCVINGTYP.CHGFORDESC AS RECEIVINGTYPE,
-          SMN.SMNNAME AS LITBUYER,
-          SMN.SMNNO AS LITBUYERNO,
-          PO_VIEW.LITITENO,
-          PO_VIEW.ONRESERVE AS ONFRUITRESERVE,
-          PO_VIEW.ISEXCEPTION AS PROFITISEEXCEPTION,
-          CASE WHEN PO_VIEW.POTYPEIND = 2 THEN 1 ELSE 0 END AS ISOVERSOLD
+          SMN.SMNNAME AS LITBUYER
      FROM FT_V_PO PO_VIEW
           INNER JOIN FT_V_PRODUCTS PRODUCT_VIEW
              ON PO_VIEW.LITPRDNO = PRODUCT_VIEW.PRCPRDNO

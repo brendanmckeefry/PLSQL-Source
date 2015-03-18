@@ -1,4 +1,10 @@
-COMMENT ON TABLE FT_V_COSTS IS  'v1.0.0 - Internal Cost View';
+--########################################################################################################
+-- FT_V_COSTS  (View)
+-- 
+-- Developer view to display cost details
+-- 
+-- Version 1.0
+--########################################################################################################
 
 CREATE OR REPLACE FORCE VIEW FT_V_COSTS
 (
@@ -30,9 +36,7 @@ CREATE OR REPLACE FORCE VIEW FT_V_COSTS
    OPENCHARGEID,
    ICHISANAUTO,
    ICHACRRECNO,
-   ICHCHNGDBYUSER,
-   EXCRECOVFROMPL,
-   ICHHASACCRUAL
+   ICHCHNGDBYUSER
 )
 AS
    SELECT ITECHG.ICHRECNO,
@@ -63,9 +67,7 @@ AS
           EXPCHA.OPENCHARGEID,
           NVL (ITECHG.ICHISANAUTO, 0) AS ICHISANAUTO,
           ITECHG.ICHACRRECNO,
-          NVL (ITECHG.ICHCHNGDBYUSER, 0) AS ICHCHNGDBYUSER,
-          NVL (EXCRECOVFROMPL, 0) AS EXCRECOVFROMPL,
-          ITECHG.ICHHASACCRUAL
+          NVL (ITECHG.ICHCHNGDBYUSER, 0) AS ICHCHNGDBYUSER
      FROM EXPCHA
           INNER JOIN ITECHG
              ON ITECHG.EXCRECNO = EXPCHA.EXCCHAREC

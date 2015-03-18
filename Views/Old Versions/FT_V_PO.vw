@@ -1,4 +1,10 @@
-COMMENT ON TABLE FT_V_PO IS  'v1.0.0 - Internal PO View';
+--########################################################################################################
+-- FT_V_PO (View)
+-- 
+-- Developer view to display purchase order details
+-- 
+-- Version 1.0
+--########################################################################################################
 
 CREATE OR REPLACE FORCE VIEW FT_V_PO
 (
@@ -37,13 +43,9 @@ CREATE OR REPLACE FORCE VIEW FT_V_PO
    PRCREF4,
    PRCREF5,
    PRCREF6,
-   PROFITISED,
-   REOPENED,
    ISEXCEPTION,
    ONRESERVE,
-   PORCLOSED,
-   POTYPEIND,
-   MGPRICE
+   PORCLOSED
 )
 AS
    SELECT PURORD.PORRECNO,
@@ -82,13 +84,9 @@ AS
           PRDREC.PRCREF4,
           PRDREC.PRCREF5,
           PRDREC.PRCREF6,
-          LOTPROFITSALOFF.PROFITISED,
-          LOTPROFITSALOFF.REOPENED,
-          NVL (LOTITE.ISEXCEPTION, 0) AS ISEXCEPTION,
-          NVL (LOTITE.ONRESERVE, 0) AS ONRESERVE,
-          NVL (PURORD.PORCLOSED, 0) AS PORCLOSED,
-          LOTITE.POTYPEIND,
-          LOTITE.MGPRICE
+          LOTITE.ISEXCEPTION,
+          LOTITE.ONRESERVE,
+          NVL (PURORD.PORCLOSED, 0) AS PORCLOSED
      FROM PURORD
           INNER JOIN LOTHED
              ON LOTHED.LHEPORRECNO = PURORD.PORRECNO
@@ -98,6 +96,4 @@ AS
              ON LOTITE.LITDETNO = LOTDET.DETRECNO
           INNER JOIN PRDREC
              ON PRDREC.PRCPRDNO = LOTITE.LITPRDNO
-          INNER JOIN LOTPROFITSALOFF
-             ON LOTPROFITSALOFF.LITITENO = LOTITE.LITITENO
    WITH READ ONLY;

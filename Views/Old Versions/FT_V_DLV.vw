@@ -1,4 +1,10 @@
-COMMENT ON TABLE FT_V_DLV IS  'v1.0.1 - Internal Delivery View';
+--########################################################################################################
+-- FT_V_DLV (View)
+-- 
+-- Developer view to display sales order details
+-- 
+-- Version 1.0
+--########################################################################################################
 
 CREATE OR REPLACE FORCE VIEW FT_V_DLV
 (
@@ -50,12 +56,7 @@ CREATE OR REPLACE FORCE VIEW FT_V_DLV
    DPRCREATIONDATE,
    DPRISPRICEADJONLY,
    ADJBY,
-   DELINVRECNO,
-   DPRCDTREFNO,
-   DLVUPDDATE,
-   DELSTATUS,
-   TNTNO,
-   DLVCURRECNO
+   DELINVRECNO
 )
 AS
    SELECT orders.OrdRecNo,
@@ -106,12 +107,7 @@ AS
           delprice.DprCreationDate,
           delprice.DprIsPriceAdjOnly,
           delprice.AdjBy,
-          delprice.DelInvRecNo,
-          delprice.DprCdtRefNo,
-          delhed.DlvUpdDate,
-          deldet.DelStatus,
-          tktnt.TntNo,
-	  delhed.DlvCurrecNo
+          delprice.DelInvRecNo
      FROM ORDERS
           INNER JOIN DELHED
              ON delhed.DlvOrdRecNo = orders.OrdRecNo
@@ -121,6 +117,4 @@ AS
              ON delprice.DprDelRecNo = deldet.DelRecNo
           INNER JOIN PRDREC
              ON prdrec.PrcPrdNo = deldet.DelPrcPrdNo
-          LEFT OUTER JOIN TKTNT
-             ON tktnt.TntDlvOrdNo = delhed.DlvOrdNo
    WITH READ ONLY;
