@@ -3,7 +3,7 @@
 --
 CREATE OR REPLACE PACKAGE CONST AS
 
-  --cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  --cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
 
   -- Freshtrade Constants
   C_ALL           CONSTANT NUMBER(5)  := -32000;
@@ -78,6 +78,10 @@ CREATE OR REPLACE PACKAGE CONST AS
   -- String Constants
   CR            CONSTANT VARCHAR2  (1) := CHR (10);
   TAB           CONSTANT VARCHAR2  (1) := CHR (9);
+  
+  -- String Constants
+  C_SPEC           CONSTANT INTEGER := 1;
+  C_BODY           CONSTANT INTEGER := 2;
 
 END CONST;
 /

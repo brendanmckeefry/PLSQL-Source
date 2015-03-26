@@ -26,6 +26,19 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.1
+  	Body Version 1.0.0                             
+
+	Modified by: Brendan McKeefry
+	Modified on: 26/03/2015      	
+	Modified Log: .......	
+	Changes Made:      
+	1) Added C_SPEC & C_BODY for the CURRENTVERSION method in all packages 
+
+*********************************************************************************
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.0
   	Body Version 1.0.0                             
 
