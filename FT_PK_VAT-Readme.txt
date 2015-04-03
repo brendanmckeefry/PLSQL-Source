@@ -17,12 +17,19 @@
  ****  	Date: Nov 2014                          
  ****  	Original Log Number: 	                
  ****************************************************************************************************** 
- ****  	Version 1.0.1                            
+	Spec Version 1.0.1
+	Body Version 1.0.1
 ****************************************************************************************************** 
- ****  	                                        
- ****  	Last Modified by:             		
- ****  	Last Modified on:          		
- ****  	Last Modified Log:                 	
- ****  	Change Made:                            
- ****  	Line    				
- ****  	                                        
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
+	Body Version 1.0.1
+
+	Modified by: Brendan McKeefry
+	Modified on: 03/04/2015      	
+	Modified Log: 	
+	Changes Made:      
+	1) added  cSpecVersionControlNo    & cVersionControlNo  & New CURRENTVERSION function 
+
+*********************************************************************************	                                        

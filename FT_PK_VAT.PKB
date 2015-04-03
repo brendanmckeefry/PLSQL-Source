@@ -1,5 +1,7 @@
 CREATE OR REPLACE PACKAGE BODY FT_PK_VAT AS
 
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+
 PROCEDURE GETBESTVAT( ClaRecNo_in IN ACCCLASS.CLARECNO%TYPE,
                       PrcPrdNo_in IN PRDREC.PRCPRDNO%TYPE,
                       StcLoc_in IN STOCLOC.STCRECNO%TYPE,
@@ -403,16 +405,16 @@ PROCEDURE CALCDELPRICEVAT(  CLARECNO_IN     IN  ACCCLASS.CLARECNO%TYPE,
     END CALCDELPRICEVAT;
 
 
-    FUNCTION  CURRENTVERSION
-              RETURN VARCHAR2 IS Ret_Version VARCHAR(12);
-       -- Returns the current version number so that calling programs can detect if a version is out of date
-       -- As with the rest of Freshtrade the version number is in the format nn.nn.nn so it has to be returned as
-       -- a string
-    BEGIN
-
-       RETURN cVersionControlNo;
-
-    END CURRENTVERSION;
+  FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
+  IS
+  BEGIN
+    IF  IN_BODYORSPEC = CONST.C_SPEC THEN
+         RETURN cSpecVersionControlNo;
+    ELSE  
+        RETURN cVersionControlNo;
+    END IF;        
+        
+  END CURRENTVERSION;
 
 END FT_PK_VAT;
 /
