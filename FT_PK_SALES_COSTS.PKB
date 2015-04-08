@@ -1,7 +1,7 @@
 create or replace
 PACKAGE BODY FT_PK_SALES_COSTS AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
   
   CURSOR TC_IchOldAppAmt(IN_EXCRECNO INTEGER) IS
       Select IchRecNo, IchAppAmt FROM IteChg, chgtyp 
@@ -49,81 +49,15 @@ CURSOR TC_DelAudResultSet(IN_DLVORDNO INTEGER, IN_EXCRECNO INTEGER) IS
   AND IteChg.DprRecNo = DelPrice.DprRecNo
   And IteChg.ICHSPETO IS NULL;
 
-/*
-PROCEDURE TestArrays(IN_DLVORDNO IN NUMBER, IN_EXCRECNO IN NUMBER) AS
- V_CONT              NUMBER(1) := 1;
- V_excChaRecCheck    NUMBER;
- 
- PARAMETER_LIST      FT_PK_STRING_UTILS.TYPE_STRING_TOKENS;  
- LITRECS       RECORD_NUMBERS;
- DYN_LIST      FT_PK_STRING_UTILS.TYPE_STRING_TOKENS;
- 
- ITECHGS_TO_WRITE    FT_PK_COST_WRITES.ITECHG_RECS := FT_PK_COST_WRITES.ITECHG_RECS();
-BEGIN
-  
-  --dyn
-  --see FT_COSTING
-  -- TYPE CONTAINER_AMTS IS TABLE OF FLOAT INDEX BY PLS_INTEGER;
-    
-  IF V_CONT =1 THEN
-    BEGIN    
-    
-     SELECT LITITENO
-    BULK COLLECT INTO LITRECS
-    FROM LOTITE
-    WHERE lititeno in (2,3,4);  --CALCULATEGOODSCOST = 1;
-
-    FOR LIT_ITR IN LITRECS.FIRST..LITRECS.LAST LOOP
-      --CALCULATEGOODSCOST(LITRECS(LIT_ITR));
-      
-      DYN_LIST(LITRECS(LIT_ITR)) := '1';
-      
-      PARAMETER_LIST(LIT_ITR) := '124';
-      
-      V_CONT := 1;
-    END LOOP;
-    
-    --from WRITE_GOODS_COST
-     PARAMETER_LIST('#PARAMNAME') := '123';--'GOODS_COST_REC.ICHRAWAPPAMT';
-     PARAMETER_LIST('#PARAMVALUE') := TO_CHAR(IN_DLVORDNO); --TO_CHAR(GOODS_COST_REC.ICHRAWAPPAMT);  
-     --FT_PK_ERRORS.RAISE_ERROR(FT_PK_ERRNUMS.FT_PARAMETER, PARAMETER_LIST);
-    
-    BEGIN
-      --Example of writing an itechg. (see FT_PK_WRITES.Apportion_PO_Cost)
-      ITECHGS_TO_WRITE.EXTEND(1);
-      ITECHGS_TO_WRITE(1).ICHRECNO := 123; --ITR_REC.ICHRECNO;
-      --ITECHGS_TO_WRITE(L_THISREC).ICHRECNO := 123; --ITR_REC.ICHRECNO;
-      ITECHGS_TO_WRITE(1).CTYNO     := 8;
-      ITECHGS_TO_WRITE(1).ICHRAWAPPAMT := 9.87;
-      
-      --FOR ITR IN ITECHGS_TO_WRITE.FIRST..ITECHGS_TO_WRITE.LAST LOOP
-      --END LOOP;
-      
-      --NOTE: select * from IteChg Where ichrecno = 123
-      --When changing the ICHRAWAPPAMT it seems to do it.  It does NOT change the CTYno.
-      
-      FOR ITR IN ITECHGS_TO_WRITE.FIRST..ITECHGS_TO_WRITE.LAST LOOP
-        IF ITECHGS_TO_WRITE(ITR).ICHRECNO IS NOT NULL THEN
-          FT_PK_COST_WRITES.UPDATE_ITECHG(ITECHGS_TO_WRITE(ITR));
-        ELSE
-          FT_PK_COST_WRITES.INSERT_ITECHG(ITECHGS_TO_WRITE(ITR));
-        END IF;
-      END LOOP;
-   EXCEPTION   
-      WHEN OTHERS THEN
-      FT_PK_ERRORS.LOG_AND_STOP;   
-    END;
-
-    END;      
-  END IF;
-END TestArrays;  
-*/
-
 --**********************************************************************
-  FUNCTION CURRENTVERSION RETURN VARCHAR2
+  FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
   IS
   BEGIN
-     RETURN cVersionControlNo;
+    IF  IN_BODYORSPEC = CONST.C_SPEC THEN
+      RETURN cSpecVersionControlNo;
+    ELSE  
+      RETURN cVersionControlNo;
+    END IF;                
   END CURRENTVERSION;
 --**********************************************************************
 
@@ -775,8 +709,8 @@ END DoAutCostAdHocChgs;
 
 PROCEDURE DoAutCostAdHocChgs AS
 --will be called from AutoCostLib.processCostChanges() until AC is fully housed in procs.
---if called from AutoCostLib.processCostChanges() then AUTOCOSTS_DPRS will be populated
--- Note: calling Exec DoAutCostAdHocChgs will not work as AUTOCOSTS_DPRS will not be populated.
+--if called from AutoCostLib.processCostChanges() then AUTOCOSTS_PROCESS will be populated
+-- Note: calling Exec DoAutCostAdHocChgs will not work as AUTOCOSTS_PROCESS will not be populated.
 -- (to run for a specific dlv and charge use DoAutCostAdHocChgs() )
 Begin
 
@@ -784,15 +718,15 @@ Begin
   FOR DLVEXPREC IN 
   (
     Select Distinct ExcChaRec, ExcDlvOrdNo
-    from FT_V_DLV, autocosts_dprs, ExpCha 
-    Where FT_V_DLV.DprRecNo = autocosts_dprs.DprRecNo
-    AND autocosts_dprs.DoAutCostAdHocChgs = 1
+    from FT_V_DLV, AUTOCOSTS_PROCESS, EXPCHA 
+    Where FT_V_DLV.DprRecNo = AUTOCOSTS_PROCESS.DprRecNo
+    AND AUTOCOSTS_PROCESS.DoAutCostAdHocChgs = CONST.C_TRUE
     AND ExpCha.ExcDlvOrdNo = FT_V_DLV.DlvOrdNo 
-    --AND ExpCha.ExcDlvOrdNo = IN_DLVORDNO  --<< do for all adhoc chgs as determined by AutoCostLib.processCostChanges() / AUTOCOSTS_DPRS
+    --AND ExpCha.ExcDlvOrdNo = IN_DLVORDNO  --<< do for all adhoc chgs as determined by AutoCostLib.processCostChanges() / AUTOCOSTS_PROCESS
     AND (select Count(itechg.IchChngdByUser)   --AdHoc charges are user changed. Do not change automatic charges.
          From Itechg 
          Where ExpCha.ExcChaRec = IteChg.ExcRecNo
-         AND IchChngdByUser = 1
+         AND IchChngdByUser = CONST.C_TRUE
         ) > 0
   )
   LOOP  
