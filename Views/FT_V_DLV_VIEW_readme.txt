@@ -1,7 +1,7 @@
 ********************************************************************************* 
 ****  
-****   Name : FT_V_PO		Type : VIEW
-****   Internal view to return purchase order information
+****   Name : FT_V_DLV_VIEW		Type : VIEW
+****   External view to return delivery information
 ****  
 *********************************************************************************                           
 ****  
@@ -25,18 +25,8 @@
 
 *********************************************************************************	                                        
 
-	Version 1.0.1                             
-
-	Modified by: Paul Michael Thomas
-	Modified on: 25/03/2015      	
-	Modified Log: 13851	
-	Changes Made:      
-	1) Added LheSupRef
-
-*********************************************************************************	                                        
-
-	Version 1.0.0                             
-
+	Spec Version 1.0.0
+                   
 	Modified by: Paul Michael Thomas
 	Modified on: 01/01/2015      	
 	Modified Log: 7510	

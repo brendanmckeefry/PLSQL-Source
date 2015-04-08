@@ -1,4 +1,4 @@
-COMMENT ON TABLE FT_V_DLV IS  'v1.0.0 - Internal Delivery View';
+COMMENT ON TABLE FT_V_DLV IS  'v1.0.1 - Internal Delivery View';
 
 CREATE OR REPLACE FORCE VIEW FT_V_DLV
 (
@@ -53,7 +53,9 @@ CREATE OR REPLACE FORCE VIEW FT_V_DLV
    DELINVRECNO,
    DPRCDTREFNO,
    DLVUPDDATE,
-   DELSTATUS
+   DELSTATUS,
+   TNTNO,
+   DLVCURRECNO
 )
 AS
    SELECT orders.OrdRecNo,
@@ -107,7 +109,9 @@ AS
           delprice.DelInvRecNo,
           delprice.DprCdtRefNo,
           delhed.DlvUpdDate,
-          deldet.DelStatus
+          deldet.DelStatus,
+          tktnt.TntNo,
+	  delhed.DlvCurrecNo
      FROM ORDERS
           INNER JOIN DELHED
              ON delhed.DlvOrdRecNo = orders.OrdRecNo
@@ -117,4 +121,6 @@ AS
              ON delprice.DprDelRecNo = deldet.DelRecNo
           INNER JOIN PRDREC
              ON prdrec.PrcPrdNo = deldet.DelPrcPrdNo
+          LEFT OUTER JOIN TKTNT
+             ON tktnt.TntDlvOrdNo = delhed.DlvOrdNo
    WITH READ ONLY;
