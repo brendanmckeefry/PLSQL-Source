@@ -1,9 +1,6 @@
---
--- FT_PK_AUTOCOSTING  (Package Body) 
---
 CREATE OR REPLACE PACKAGE BODY FT_PK_AUTOCOSTING AS
   
-  cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
   
   PROCESSTODO     INTEGER := 1;
   PROCESSINPROG   INTEGER := 2;
@@ -11,10 +8,14 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_AUTOCOSTING AS
   PROCESSJIT      INTEGER := 10;
   G_SID           INTEGER := SYS_CONTEXT('USERENV','SID');
 
-  FUNCTION CURRENTVERSION RETURN VARCHAR2
+  FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
   IS
   BEGIN
-     RETURN cVersionControlNo;
+    IF  IN_BODYORSPEC = CONST.C_SPEC THEN
+      RETURN cSpecVersionControlNo;
+    ELSE  
+      RETURN cVersionControlNo;
+    END IF;                
   END CURRENTVERSION;
 
   -- Helper Procedure to deal with looping of bulk exceptions --
