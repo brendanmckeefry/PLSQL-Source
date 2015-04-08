@@ -32,6 +32,6 @@
 	Modified on: 19/03/2015      	
 	Modified Log: 13676	
 	Changes Made:      
-	1) New procedure written, copied from code in the costing library. (should be identical functionality)
+	1) New procedure written, copied from code in the costing library. (should be identical functionality).
 
 *********************************************************************************

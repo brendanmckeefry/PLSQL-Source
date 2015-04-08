@@ -49,7 +49,7 @@ CURSOR TC_DelAudResultSet(IN_DLVORDNO INTEGER, IN_EXCRECNO INTEGER) IS
   AND IteChg.DprRecNo = DelPrice.DprRecNo
   And IteChg.ICHSPETO IS NULL;
 
-
+/*
 PROCEDURE TestArrays(IN_DLVORDNO IN NUMBER, IN_EXCRECNO IN NUMBER) AS
  V_CONT              NUMBER(1) := 1;
  V_excChaRecCheck    NUMBER;
@@ -117,7 +117,7 @@ BEGIN
     END;      
   END IF;
 END TestArrays;  
-
+*/
 
 --**********************************************************************
   FUNCTION CURRENTVERSION RETURN VARCHAR2
@@ -352,10 +352,10 @@ BEGIN
        ORIGITECHG(IchOldAppAmt_REC.IchRecNo) := IchOldAppAmt_REC.IchAppAmt;
        
        --For example of dynarray equivalent, see...
-       --FT_COSTING.AUTO_PO_COSTS() =>   TYPE CONTAINER_AMTS IS TABLE OF FLOAT INDEX BY PLS_INTEGER;
+       --FT_PK_COSTING.AUTO_PO_COSTS() =>   TYPE CONTAINER_AMTS IS TABLE OF FLOAT INDEX BY PLS_INTEGER;
        
        --ZEROING: Cannot do this here as it zeroes it every other go
-       --FT_COST_WRITES.UPDATE_ICHAPPAMT(IchOldAppAmt_REC.IchRecNo, 0.00);       
+       --FT_PK_COST_WRITES.UPDATE_ICHAPPAMT(IchOldAppAmt_REC.IchRecNo, 0.00);       
     END LOOP;
     
     --;Reset the IteChgs that are NOT fixed.  
@@ -529,7 +529,7 @@ BEGIN
           if FoundIte = False Then                          
              --NxtIteNo = UtilsLib.GetWizNxtRecNo(FormName, "ContIchNo", 1)
              --NxtIteNo := SP_WIZGETCONTROL('ContIchNo', 1, 'INSERT_ITECHG');
-             --Dont do this as rec acquired in FT_COST_WRITES.INSERT_ITECHG;
+             --Dont do this as rec acquired in FT_PK_COST_WRITES.INSERT_ITECHG;
              
              if TotToAppFacNu > 0.009 then --??will this handle/do we need to handle negatives?
 							 TotToAppPerIte :=  PerLnToAppFacNu * DlvToExp_REC.TotToApp;
@@ -647,5 +647,164 @@ EXCEPTION
     FT_PK_ERRORS.LOG_AND_STOP;     
        
 END LOTITEAPPORTION_DELPRICE;
+
+--*******************************************
+
+PROCEDURE DoAutCostAdHocChgs_Int(IN_DLVORDNO IN NUMBER, IN_EXCRECNO IN NUMBER) AS
+--internal proc called by DoAutCostAdHocChgs() and DoAutCostAdHocChgs [for single delivery, and all AC deliveries]
+Begin
+  --NULL;
+  LOTITEAPPORTION_DELPRICE(IN_DLVORDNO, IN_EXCRECNO);
+END DoAutCostAdHocChgs_Int;
+
+
+PROCEDURE GetTotalDeliveryUnits(VExcAppType EXPCHA.ExcAppType%Type, IN_DLVORDNO DELHED.DLVORDNO%Type, TotDelQtyOrWgt IN OUT Float) as
+   TypeReqd Varchar(7);
+BEGIN  
+
+  Case VExcAppType
+  When 10 Then TypeReqd := 'RNDPALS';
+  When  2 Then TypeReqd := 'WEIGHT';
+  else         TypeReqd := 'BOX';              
+  End Case;
+  
+  if TypeReqd = 'BOX' Then   
+    Select Sum(DelQty) Into TotDelQtyOrWgt From Deldet WHERE DelDlvOrdNo = IN_DLVORDNO;
+  end if;  
+  
+  if TypeReqd = 'RNDPALS' Then         
+    --Select Ceil(HedSysCalcPals) NumPals, UserInpPals, (Case when Nvl(UserInpPals, 0) = 0 Then Ceil(HedSysCalcPals) else UserInpPals end) PalsForDlv "
+    Select (Case when Nvl(UserInpPals, 0) = 0 Then Ceil(HedSysCalcPals) else UserInpPals end) 
+    Into TotDelQtyOrWgt --PalsForDlv 
+    From DelHed WHERE DlvOrdNo = IN_DLVORDNO;		
+  end if;
+
+  if TypeReqd = 'WEIGHT' Then   
+    Select Sum(DelNettWeight) Into TotDelQtyOrWgt from Deldet WHERE DelDlvOrdNo = IN_DLVORDNO; --TotDelWgt
+  end if;  
+      
+end GetTotalDeliveryUnits;
+
+PROCEDURE DoAutCostAdHocChgs(IN_DLVORDNO INTEGER, IN_EXCRECNO IN NUMBER) AS
+--Replaces CostingLib.DoAutCostAdhocChgs()
+  PARAMETER_LIST    FT_PK_STRING_UTILS.TYPE_STRING_TOKENS;
+  LAnyAdHocToDo Boolean;
+  
+  VExcCtyNo             EXPCHA.ExcCtyNo%Type; 
+  VExcCurrNo            EXPCHA.ExcCurrNo%Type;
+  VExcChaPerRate        EXPCHA.ExcChaPerRate%Type;
+  VEXCTOEUROEXCRATE     EXPCHA.EXCTOEUROEXCRATE%Type;
+  VEXCTOBASERATE        EXPCHA.EXCTOBASERATE%Type;
+  VEXCRAWAMM            EXPCHA.EXCRAWAMM%Type;
+  VExcAppType           EXPCHA.ExcAppType%Type;
+  VExcSalOff            EXPCHA.ExcSalOff%Type;
+  VCtyDesc              ChgTyp.CtyDesc%Type;
+  VNumIchChngdByUser   NUMBER;
+  
+  TotDelQtyOrWgt       Float;
+  NewRawAmmNu          Float;
+  UpdExpChaRec         EXPCHA%ROWTYPE;
+  NuTmp Float; 
+Begin
+  NULL;  
+  IF IN_DLVORDNO IS NULL THEN
+    PARAMETER_LIST('#PARAMNAME') := 'IN_DLVORDNO';
+    PARAMETER_LIST('#PARAMVALUE') := TO_CHAR(IN_DLVORDNO);
+    FT_PK_ERRORS.RAISE_ERROR(FT_PK_ERRNUMS.FT_PARAMETER, PARAMETER_LIST);
+  END IF;
+  
+  --SELECT EXCCHAREC, ExcCtyNo, ExcCurrNo, ExcChaPerRate, EXCTOEUROEXCRATE,EXCTOBASERATE ,EXCRAWAMM, ExcAppType, ExcSalOff, ChgTyp.CtyDesc
+  SELECT ExcCtyNo, ExcCurrNo, ExcChaPerRate, EXCTOEUROEXCRATE,EXCTOBASERATE, EXCRAWAMM, ExcAppType, ExcSalOff, ChgTyp.CtyDesc,
+         (select Count(itechg.IchChngdByUser) From Itechg Where ExpCha.ExcChaRec = IteChg.ExcRecNo AND IchChngdByUser = 1) NumIchChngdByUser
+  Into VExcCtyNo, VExcCurrNo, VExcChaPerRate, VEXCTOEUROEXCRATE, VEXCTOBASERATE, VEXCRAWAMM, VExcAppType, VExcSalOff, VCtyDesc, VNumIchChngdByUser
+  FROM EXPCHA, ChgTyp
+  WHERE EXCDLVORDNO = IN_DLVORDNO
+  AND EXCCHAREC     = IN_EXCRECNO
+  AND EXPCHA.ExcCtyNo = ChgTyp.CtyNo
+  Order By ExcCtyNo;
+  
+  LAnyAdHocToDo := (VNumIchChngdByUser > 0);
+  
+  if LAnyAdHocToDo Then
+    FOR DLVEXPREC IN 
+    (
+      Select Distinct ExcChaRec, ExcDlvOrdNo
+      from ExpCha 
+      Where ExpCha.ExcDlvOrdNo = IN_DLVORDNO
+      AND ExpCha.excChaRec     = IN_EXCRECNO
+      AND (select Count(itechg.IchChngdByUser)   --AdHoc charges are user changed.
+           From Itechg 
+           Where ExpCha.ExcChaRec = IteChg.ExcRecNo
+           AND IchChngdByUser = 1
+          ) > 0
+    )
+    LOOP    
+    
+       --if Box rate specified, recalculate the ExpCha (cannot apportion across itechgs until the total charge is correct for the updated number of boxes.)
+       begin
+         if VExcChaPerRate > 0.009 Then
+           TotDelQtyOrWgt := 0;
+           GetTotalDeliveryUnits(VExcAppType, IN_DLVORDNO, TotDelQtyOrWgt);                    
+           NewRawAmmNu := round( (TotDelQtyOrWgt * VExcChaPerRate), 2);                    
+           
+           if Abs(NewRawAmmNu - VEXCRAWAMM ) > 0.009 Then
+             UpdExpChaRec.ExcChaRec             := IN_EXCRECNO;
+             UpdExpChaRec.ExcCtyNo              := vExcCtyNo;     --?
+             UpdExpChaRec.ExcCurrNo             := vExcCurrNo;    --?
+             UpdExpChaRec.ExcChaPerRate         := VExcChaPerRate; --?
+             UpdExpChaRec.EXCRAWAMM             := NewRawAmmNu;  
+             NuTmp := NewRawAmmNu * VEXCTOEUROEXCRATE;
+             UpdExpChaRec.EXCEUROAMM            := NuTmp;
+             NuTmp := NewRawAmmNu * VEXCTOBASERATE; 
+             UpdExpChaRec.EXCCONAMM             := NuTmp;          
+             
+             FT_PK_COST_WRITES.UPDATE_EXPCHA(UpdExpChaRec);
+           end if;                                          
+         end if;
+      
+         LOTITEAPPORTION_DELPRICE(IN_DLVORDNO, IN_EXCRECNO);
+         --DoAutCostAdHocChgs_Int(DLVEXPREC.ExcChaRec, DLVEXPREC.ExcDlvOrdNo);
+       Exception 
+         WHEN OTHERS THEN
+           FT_PK_ERRORS.LOG_AND_STOP;
+       end;
+    END LOOP;
+  END IF;  
+  
+END DoAutCostAdHocChgs;
+
+PROCEDURE DoAutCostAdHocChgs AS
+--will be called from AutoCostLib.processCostChanges() until AC is fully housed in procs.
+--if called from AutoCostLib.processCostChanges() then AUTOCOSTS_DPRS will be populated
+-- Note: calling Exec DoAutCostAdHocChgs will not work as AUTOCOSTS_DPRS will not be populated.
+-- (to run for a specific dlv and charge use DoAutCostAdHocChgs() )
+Begin
+
+  --loop all pending ad hoc autocosts
+  FOR DLVEXPREC IN 
+  (
+    Select Distinct ExcChaRec, ExcDlvOrdNo
+    from FT_V_DLV, autocosts_dprs, ExpCha 
+    Where FT_V_DLV.DprRecNo = autocosts_dprs.DprRecNo
+    AND autocosts_dprs.DoAutCostAdHocChgs = 1
+    AND ExpCha.ExcDlvOrdNo = FT_V_DLV.DlvOrdNo 
+    --AND ExpCha.ExcDlvOrdNo = IN_DLVORDNO  --<< do for all adhoc chgs as determined by AutoCostLib.processCostChanges() / AUTOCOSTS_DPRS
+    AND (select Count(itechg.IchChngdByUser)   --AdHoc charges are user changed. Do not change automatic charges.
+         From Itechg 
+         Where ExpCha.ExcChaRec = IteChg.ExcRecNo
+         AND IchChngdByUser = 1
+        ) > 0
+  )
+  LOOP  
+    DoAutCostAdHocChgs(DLVEXPREC.ExcChaRec, DLVEXPREC.ExcDlvOrdNo);     
+  END LOOP;
+  
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN 
+    NULL;
+  WHEN OTHERS THEN
+    FT_PK_ERRORS.LOG_AND_STOP;  
+  
+END DoAutCostAdHocChgs;
 
 END FT_PK_SALES_COSTS;

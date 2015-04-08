@@ -32,7 +32,8 @@
 	Modified on: 24/03/2015      	
 	Modified Log: 7510 (13676)	
 	Changes Made:      
-	1) IteChg.ICHCHNGDBYUSER was hardcoded to false; now written as per value passed in.
+	1) INSERT_ITECHG() IteChg.ICHCHNGDBYUSER was hardcoded to false; now written as per value passed in.
+        2) UPDATE_EXPCHA() Only updated field EXCCHAPERRATE; now also writes EXCRAWAMM, EXCEUROAMM, EXCCONAMM
 	
 
 *********************************************************************************	                                        
