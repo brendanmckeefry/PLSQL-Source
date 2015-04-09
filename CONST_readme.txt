@@ -26,8 +26,17 @@
 
 *********************************************************************************	                                        
 
-	Spec Version 1.0.0
-  	Body Version 1.0.0                             
+	Spec Version 1.0.1                         
+
+	Modified by: Paul Michael Thomas
+	Modified on: 08/04/2015      	
+	Modified Log: 13648
+	Changes Made:      
+	1) Changed CurrentVersion to return spec and body version numbers
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.0                         
 
 	Modified by: Paul Michael Thomas
 	Modified on: 01/01/2015      	

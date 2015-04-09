@@ -8,14 +8,14 @@ PACKAGE demo_mail IS
 
 
   -- Customize the SMTP host, port and your domain name below.
-
-  smtp_host   VARCHAR2 ( 256 ) := '10.1.1.126' ; --'smtp-server.some-company.com';
+  -- was 10.1.1.126 which was old Notes server
+  smtp_host   VARCHAR2 ( 256 ) := '10.1.1.139' ; --'smtp-server.some-company.com';
 
   smtp_port   PLS_INTEGER    := 25 ;
 
-  smtp_domain VARCHAR2 ( 256 ) := 'totalproduce.com' ; --'beresfordsoftware.com' ; --'some-company.com';
+  smtp_domain VARCHAR2 ( 256 ) := 'totalproduce.com' ; --'some-company.com';
 
-
+  from_address CONSTANT VARCHAR2 ( 256 ) := 'NoReply@TotalProduce.Com';  
 
   -- Customize the signature that will appear in the email's MIME header.
 
@@ -23,7 +23,7 @@ PACKAGE demo_mail IS
 
   MAILER_ID   CONSTANT VARCHAR2 ( 256 ) := 'Mailer by Oracle UTL_SMTP' ;
 
-
+  cSpecVersionControlNo VARCHAR2(12) := '1.0.1'; --Current Header Version Control No
 
   --------------------- End Customizable Section ---------------------
 
@@ -35,7 +35,7 @@ PACKAGE demo_mail IS
 
   -- Customize this if needed or generate this randomly dynamically.
 
-  BOUNDARY        CONSTANT VARCHAR2 ( 256 ) := '-----7D81B75CCC90D2974F7A1LEV' ;
+  BOUNDARY        CONSTANT VARCHAR2 ( 256 ) := '-----7D81B75CCC90D2974F7A1CBD' ;
 
 
 
@@ -70,6 +70,10 @@ PACKAGE demo_mail IS
   -- The recipients is a list of email addresses  separated by
 
   -- either a "," or a ";"
+
+  
+  FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2;
+
 
   PROCEDURE mail ( sender     IN VARCHAR2 ,
 
@@ -196,6 +200,7 @@ PACKAGE demo_mail IS
                  filename     IN VARCHAR2 DEFAULT NULL,
 
                  transfer_enc IN VARCHAR2 DEFAULT NULL);
+
 
 
   -- End the attachment.
