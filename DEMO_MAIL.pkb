@@ -12,6 +12,22 @@ PACKAGE BODY DEMO_MAIL IS
   --   "Someone at some domain" <someone@some-domain>
 
   --   Someone at some domain <someone@some-domain>
+  
+  
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+
+--**********************************************************************
+  FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
+  IS
+  BEGIN
+    IF  IN_BODYORSPEC = CONST.C_SPEC THEN
+      RETURN cSpecVersionControlNo;
+    ELSE  
+      RETURN cVersionControlNo;
+    END IF;                
+  END CURRENTVERSION;
+--**********************************************************************
+  
 
   FUNCTION get_address ( addr_list IN OUT VARCHAR2 ) RETURN VARCHAR2 IS
 
@@ -203,9 +219,19 @@ PACKAGE BODY DEMO_MAIL IS
 
     conn utl_smtp . connection ;
 
-  BEGIN
+    vSENTFROM   VARCHAR2(256);
 
-    conn := begin_mail ( sender , recipients , subject , MULTIPART_MIME_TYPE );
+  BEGIN
+  
+   --make sender fixed for Microsoft (could be variable for Lotus Notes)
+   IF from_address IS NULL 
+   THEN
+      vSENTFROM := sender;
+   ELSE
+      vSENTFROM := from_address;
+   END IF;
+    
+    conn := begin_mail ( vSENTFROM , recipients , subject , MULTIPART_MIME_TYPE );
 
     write_text ( conn , message );
 
@@ -232,12 +258,20 @@ PACKAGE BODY DEMO_MAIL IS
               RETURN utl_smtp . connection IS
 
     conn utl_smtp . connection ;
-
+    vSENTFROM   VARCHAR2(256);
   BEGIN
 
     conn := begin_session ;
 
-    begin_mail_in_session ( conn , sender , recipients , subject , mime_type ,
+    --make sender fixed for Microsoft (could be variable for Lotus Notes)
+    IF from_address IS NULL 
+    THEN
+       vSENTFROM := sender;
+    ELSE
+       vSENTFROM := from_address;
+    END IF;
+    
+    begin_mail_in_session ( conn , vSENTFROM , recipients , subject , mime_type ,
 
       priority );
 
@@ -508,8 +542,15 @@ PACKAGE BODY DEMO_MAIL IS
     my_sender     VARCHAR2 ( 32767 ) := sender ;
 
   BEGIN
-
-
+ 
+    --make sender fixed for Microsoft (could be variable for Lotus Notes)
+    IF from_address IS NULL 
+    THEN
+       my_sender := sender;
+    ELSE
+       my_sender := from_address;
+    END IF;
+    
 
     -- Specify sender's address (our server allows bogus address
 
