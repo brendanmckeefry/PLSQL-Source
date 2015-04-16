@@ -35,6 +35,8 @@
 	Changes Made:      
 	1) Changed CurrentVersion to return spec and body version numbers
 	2) Changed AUTOCOSTING table name
+	3) cut n paste issue '\n' removed from built up sqlstr; SR.
+        4) delprices > 0 becomes delprices <> 0 so credits are added. SR.
 
 *********************************************************************************	                                        
 

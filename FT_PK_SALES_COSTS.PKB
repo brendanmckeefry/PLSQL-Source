@@ -30,7 +30,7 @@ PACKAGE BODY FT_PK_SALES_COSTS AS
 	And Deldet.DelDlvOrdNo =  IN_DLVORDNO
 	And Expcha.ExcDlvOrdNo = Deldet.DelDlvOrdNo
 	And Expcha.ExcChaRec =  IN_EXCRECNO
-	And DelPrice.DelPrcQty > 0
+	And DelPrice.DelPrcQty <> 0
 	And DelPrice.DprRecNo = deltoist.DisDprRecNo(+)
 	AND Expcha.ExcCtyNo = chgtyp.CtyNo
 	And Not Exists (Select *
@@ -159,7 +159,7 @@ BEGIN
   IF V_CONT = 1 THEN   
     IF DlvIsDlvd = 1 THEN
       --link in deltoist as actual weight may be different
-      DTISel := '\n   SUM(Case When DelPricePer = 2 then DelNettweight * DisQty else PrcWeight * DisQty end) WeightTot_DLVD,';
+      DTISel := '  SUM(Case When DelPricePer = 2 then DelNettweight * DisQty else PrcWeight * DisQty end) WeightTot_DLVD,';
       DTITab := ', DelToIst';
       DTILnk := ' And DelPrice.DprRecNo = deltoist.DisDprRecNo(+)';
     ELSE
@@ -715,7 +715,7 @@ PROCEDURE DoAutCostAdHocChgs AS
 Begin
 
   --loop all pending ad hoc autocosts
-  FOR DLVEXPREC IN 
+  FOR AUTOCOSTSREC IN 
   (
     Select Distinct ExcChaRec, ExcDlvOrdNo
     from FT_V_DLV, AUTOCOSTS_PROCESS, EXPCHA 
@@ -730,15 +730,14 @@ Begin
         ) > 0
   )
   LOOP  
-    DoAutCostAdHocChgs(DLVEXPREC.ExcChaRec, DLVEXPREC.ExcDlvOrdNo);     
+    DoAutCostAdHocChgs(AUTOCOSTSREC.ExcChaRec, AUTOCOSTSREC.ExcDlvOrdNo);     
   END LOOP;
   
 EXCEPTION
-  WHEN NO_DATA_FOUND THEN 
-    NULL;
   WHEN OTHERS THEN
     FT_PK_ERRORS.LOG_AND_STOP;  
   
 END DoAutCostAdHocChgs;
 
 END FT_PK_SALES_COSTS;
+/
