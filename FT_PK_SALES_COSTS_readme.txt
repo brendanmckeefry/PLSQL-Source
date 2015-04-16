@@ -26,7 +26,22 @@
 
 *********************************************************************************	                                        
 
-	Version 1.0.0
+	Spec Version 1.0.1
+	Body Version 1.0.1
+
+	Modified by: Paul Michael Thomas
+	Modified on: 08/04/2015      	
+	Modified Log: 13648
+	Changes Made:      
+	1) Changed CurrentVersion to return spec and body version numbers
+	2) Changed AUTOCOSTING table name
+	3) cut n paste issue '\n' removed from built up sqlstr; SR.
+        4) delprices > 0 becomes delprices <> 0 so credits are added. SR.
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.0 
+	Body Version 1.0.0
   	
 	Modified by: Stephen Rimen
 	Modified on: 19/03/2015      	

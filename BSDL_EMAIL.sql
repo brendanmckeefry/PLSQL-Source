@@ -9,7 +9,7 @@ PROCEDURE     BSDL_EMAIL(SENTFROM			   IN VARCHAR2,
 									   ) IS
    /* TV 3Nov09 .. procedure to send an email with attachments	Version 1.0a
       PMT/TV 13Aug14 Changed message to CLOB and added default L_FIXED_FROM_NAME 
- 
+      TV 14Apr15 Moved site specific constants out to package sysconst
  
    Stolen from code found on the Web, but extensively mucked around with!
 
@@ -28,27 +28,23 @@ PROCEDURE     BSDL_EMAIL(SENTFROM			   IN VARCHAR2,
    Usage
 
      Before you can use this you need to set up the parameters below and also set an Oracle
-	 directory using:
+	   directory using:
 
-       CREATE OR REPLACE DIRECTORY BSDLATTACHMENTDIRECTORY AS '\\svbsdl01\TEMP';
+     CREATE OR REPLACE DIRECTORY BSDLATTACHMENTDIRECTORY AS '\\svbsdl01\TEMP';
 	   GRANT READ,WRITE ON DIRECTORY BSDLATTACHMENTDIRECTORY TO TEST111;
 
      Then the sample below should work!
      CALL BSDL_EMAIL( 'Test@BeresfordSoftware.com','TVivian@BeresfordSoftware.com', '', '', 'Email Test', 'Test from BSDL_EMAIL',  '');
    */
+   cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
+  /* Setup Parameters ... set these up for each server in the SYSCONST package **/
+   L_SMTP_SERVER       CONSTANT VARCHAR2(20) := SYSCONST.C_SMTP_SERVER;        /* Email server	*/ 
+   L_SMTP_SERVER_PORT  CONSTANT NUMBER       := SYSCONST.C_SMTP_SERVER_PORT;   /* Port on Email server	*/
+   L_DIRECTORY_NAME    CONSTANT VARCHAR2(200):= SYSCONST.C_DIRECTORY_NAME;    /* This is an ORACLE directory */
+   L_FIXED_FROM_NAME   CONSTANT VARCHAR2(50) := SYSCONST.C_FIXED_FROM_NAME;   
 
-
-   /** Setup Parameters ... set these up for each server **/
-   L_SMTP_SERVER       CONSTANT VARCHAR2(20) := '10.1.1.139';                 /* Email server	*/ 
-   L_SMTP_SERVER_PORT  CONSTANT NUMBER       := 25;                           /* Port on Email server	*/
+ 
    MAX_SIZE            CONSTANT NUMBER := 9999999999;                         /* Maximum message size in bytes */
-   L_DIRECTORY_NAME    CONSTANT VARCHAR2(200):= 'BSDLATTACHMENTDIRECTORY';    /* This is an ORACLE directory */
-
-   /* If this is not null then every email will be sent from this email address regardless of the 
-      value passed in in the SENTFROM parameter.  This is because Microsoft Online only allows 
-      emails to be sent from a certain number of email addresses.  Lotus Notes never cared! */
-   L_FIXED_FROM_NAME   CONSTANT VARCHAR2(50) := 'noreply@totalproduce.com';   
-
    VSTART NUMBER := 1;
    VLENGTH NUMBER := 3999; -- What ever size to split the CLOB into
 
