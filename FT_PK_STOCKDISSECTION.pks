@@ -1,7 +1,7 @@
 SET DEFINE OFF;
 CREATE OR REPLACE PACKAGE FT_PK_STOCKDISSECTION 
 AS
-    cVersionControlNo    VARCHAR2 (12) := '11.1.1'; -- Current Version Number   
+   cSpecVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number For Spec
     V_USELITPAYTYP   NUMBER(5) := 0;
 
     -- THIS IS THE PROCEDURE THAT CALLS ALL THE OTHERS
@@ -90,7 +90,7 @@ AS
                           V_PAYTYP   IN NUMBER                                        
                           );
     
-    FUNCTION  CURRENTVERSION RETURN VARCHAR2; 
+    FUNCTION CURRENTVERSION (IN_BODYORSPEC IN INTEGER := 1) RETURN VARCHAR2; 
     
 END FT_PK_STOCKDISSECTION;
 /

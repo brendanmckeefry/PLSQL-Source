@@ -17,6 +17,21 @@
  ****  	Date: Dec 2014                          
  ****  	Original Log Number: 	                
  ****************************************************************************************************** 
+ ****  	Spec Version 1.0.2
+ ****  	Body Version 1.0.2
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     16/04/2014      		
+ ****  	Last Modified Log:    13987	
+ ****  	Change Made:          
+	(1)	Changes made as per instruction of Steve to deal with an oddity when the AllocExp is negative (which it should not be)                              
+	08/04/2015 --SR. Search 13987.  AllocExp can go negative when RTS is done. 
+		In OrdManNew ticking over allocate does not return correct lines as this proc returned 0.
+
+	(2) Added in New CURRENTVERSION stuff 
+
+ ****************************************************************************************************** 
  ****  	Version 1.0.1                            
  ****************************************************************************************************** 
  ****  	                                        
