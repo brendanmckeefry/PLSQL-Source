@@ -25,6 +25,17 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.2                          
+
+	Modified by: Paul Michael Thomas
+	Modified on: 24/04/2015      	
+	Modified Log: 13648
+	Changes Made:      
+	1) Added NVL for status - there is no index on this field
+	2) Added OrdCstCode to help identify open dlvs
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.1                          
 
 	Modified by: Paul Michael Thomas
