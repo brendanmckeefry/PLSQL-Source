@@ -1,5 +1,4 @@
-create or replace
-PACKAGE FT_PK_SALES_COSTS  AS
+create or replace PACKAGE FT_PK_SALES_COSTS  AS
 
   cSpecVersionControlNo VARCHAR2(12) := '1.0.1';
   --[ SRimen 04/03/2015 13676 ]

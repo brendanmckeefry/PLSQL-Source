@@ -25,6 +25,17 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.1
+  	Body Version 1.0.1                             
+
+	Modified by: Paul Michael Thomas
+	Modified on: 01/01/2015      	
+	Modified Log: 7510	
+	Changes Made:      
+	1) Added new method to return a collection of active SIDs
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.0
   	Body Version 1.0.0                             
 

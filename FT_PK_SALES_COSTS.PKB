@@ -1,5 +1,4 @@
-create or replace
-PACKAGE BODY FT_PK_SALES_COSTS AS
+create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
 
   cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
   
