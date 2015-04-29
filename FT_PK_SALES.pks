@@ -1,6 +1,8 @@
 CREATE OR REPLACE PACKAGE FT_PK_SALES  AS
 
-  --cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  cSpecVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number For Spec
+  
+  FUNCTION CURRENTVERSION (IN_BODYORSPEC IN INTEGER := 1) RETURN VARCHAR2;
 
   PROCEDURE DELPRICE_NETTVALUE(IN_DPRRECNO IN NUMBER );
 

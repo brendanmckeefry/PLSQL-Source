@@ -25,6 +25,18 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.1
+	Body Version 1.0.1
+
+	Modified by: Brendan McKeefry
+	Modified on: 18/03/2015      	
+	Modified Log: 	
+	Changes Made:      
+	1) use FT_PK_VAT.CALCDELPRICEVAT instead of BSDL_PK_VAT.CALCDELPRICEVAT
+	2) added  cSpecVersionControlNo    & cVersionControlNo  & New CURRENTVERSION function 
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.0
   	Body Version 1.0.0                             
 

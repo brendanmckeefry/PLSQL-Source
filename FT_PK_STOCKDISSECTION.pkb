@@ -1,6 +1,8 @@
 SET DEFINE OFF;
     CREATE OR REPLACE PACKAGE BODY FT_PK_STOCKDISSECTION
     AS
+      cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
+    
       --VARIABLES FOR OVER SOLD DETAILS
       GLBALLOCNO                    NUMBER(10)        :=0; 
       GLBISOVERALLOC                NUMBER(1)        :=0;
@@ -1428,6 +1430,9 @@ SET DEFINE OFF;
         VAR_REQ_SPLITQTY_EACH       NUMBER(10) ;
         VAR_REQ_SPLITQTY_INNER      NUMBER(10) ;
             
+        VAR_ALLOC_AND_EXP           NUMBER(10) ;
+        VAR_ACTSPLITQTY_THISALLOC   NUMBER(10) ;
+
         BEGIN
         
         --VARIABLES FOR OVER SOLD DETAILS
@@ -1702,7 +1707,26 @@ SET DEFINE OFF;
                     END;
                     END IF;
                 END;
-                END IF;        
+                END IF;    
+                
+                 --SR 13987. if RTS done alloc qty will be negative. in ordermanagement new ticking overallocated does not show this as this proc returns 0.
+                IF VAR_LCONT = 1 THEN
+                BEGIN
+                
+                   VAR_ALLOC_AND_EXP := 0;
+                
+                   IF VAR_ACTSPLITQTY_THISALLOC = 0 AND VAR_EXP_BOX_QTY < 0 THEN
+                      SELECT (ALLOCQTY + ALLOCEXP) - ALLOCALLOC 
+                      INTO VAR_ALLOC_AND_EXP
+                      FROM ALLOCATE WHERE ALLOCNO = VAR_USEALLOCNO;
+                      
+                      IF VAR_ALLOC_AND_EXP < 0 THEN
+                         VAR_EXIST_BOX_QTY := VAR_ALLOC_AND_EXP;
+                      END IF;                                          
+                     
+                   END IF;
+                END;
+                END IF;    
                         
 
           --- THIS IS THE BOX OVERSOLD QTY INCLUDING ALL BOX EQUIVALENT OF THE SPLITS FOR AN ALLOCATE LINE
@@ -2193,16 +2217,16 @@ SET DEFINE OFF;
 
     END UPD_ACCCODE;
         
-    FUNCTION  CURRENTVERSION
-          RETURN VARCHAR2 IS Ret_Version VARCHAR(12);
-   -- Returns the current version number so that calling programs can detect if a version is out of date
-   -- As with the rest of Freshtrade the version number is in the format nn.nn.nn so it has to be returned as
-   -- a string
-    BEGIN
-
+  FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
+  IS
+  BEGIN
+    IF  IN_BODYORSPEC = CONST.C_SPEC THEN
+         RETURN cSpecVersionControlNo;
+    ELSE  
         RETURN cVersionControlNo;
-
-    END CURRENTVERSION;
+    END IF;        
+        
+  END CURRENTVERSION;
 
 
     -- initialisation section

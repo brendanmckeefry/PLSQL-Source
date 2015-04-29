@@ -1,6 +1,7 @@
 CREATE OR REPLACE PACKAGE FT_PK_VAT AS
 
-    cVersionControlNo	VARCHAR2 (12) := '11.1.1'; -- Current Version Number	
+    cSpecVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number For Spec
+    	
     VAT_ERROR 		  	EXCEPTION;
     NO_VAT_FOUND	  	EXCEPTION;
 
@@ -37,6 +38,8 @@ PROCEDURE CALCDELPRICEVAT( CLARECNO_IN     IN  ACCCLASS.CLARECNO%TYPE,
                             VATRATE2_OUT    OUT VATRATES.VATRATE2%TYPE,
                             VATAMOUNT_OUT   OUT FLOAT) ;
                         
+
+FUNCTION CURRENTVERSION (IN_BODYORSPEC IN INTEGER := 1) RETURN VARCHAR2;
                         
 END FT_PK_VAT;
 /
