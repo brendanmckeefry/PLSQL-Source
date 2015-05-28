@@ -1,6 +1,6 @@
 CREATE OR REPLACE PACKAGE BODY FT_PK_PROFITISELOTS AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
   IS
