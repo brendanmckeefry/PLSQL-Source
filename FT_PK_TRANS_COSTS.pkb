@@ -1,6 +1,6 @@
 CREATE OR REPLACE PACKAGE BODY FT_PK_TRANS_COSTS AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.4'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.5'; -- Current Version Number
 
 	CURSOR TRANSFER_OWNER_SUBCHG_CUR(TRORECNO_IN INTEGER)
 	IS
