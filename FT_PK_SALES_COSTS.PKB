@@ -731,7 +731,7 @@ Begin
         ) > 0
   )
   LOOP  
-    DoAutCostAdHocChgs(AUTOCOSTSREC.ExcChaRec, AUTOCOSTSREC.ExcDlvOrdNo);     
+    DoAutCostAdHocChgs(AUTOCOSTSREC.ExcDlvOrdNo, AUTOCOSTSREC.ExcChaRec);     
   END LOOP;
   
 EXCEPTION
