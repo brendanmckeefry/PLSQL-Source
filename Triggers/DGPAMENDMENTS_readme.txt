@@ -25,6 +25,16 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.1                            
+
+	Modified by: Paul Michael Thomas
+	Modified on: 11/06/2015      	
+	Modified Log: 14337
+	Changes Made:      
+	1) Trigger was missing DPRRECNOs moved to auto cost procssing table
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.0                            
 
 	Modified by: Paul Michael Thomas
