@@ -1,6 +1,6 @@
 CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
   IS
@@ -30,7 +30,9 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
                               DTLBULKSALESQTY, 
                               DTLSOLDSALESQTY,  
                               DTLSALESVALUE,
-                              DTLOPENPRCQTY)
+                              DTLOPENPRCQTY,
+                              DTLDLVORDNO,
+                              DTLSALOFFNO)
                               Select delprice.dprrecno
                               ,Itesto.istlitno
                               ,delprice.dprdelrecno
@@ -59,7 +61,9 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
                     0 
                    else
                     NVL(deltoist.DISSTKQTY,0)
-                   end) OpenPrcQty 						
+                   end) OpenPrcQty,
+                   delhed.DlvOrdNo,
+                   delhed.DlvSalOffNo
                               From Deltoist,deldet, delprice, delhed, itesto, Purord
                               Where delprice.dprrecno = Deltoist.disdprrecno
                               and deltoist.DISISTRECNO = Itesto.ISTRECNO
@@ -74,7 +78,7 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
                                                from DPRSTOLOTS checkIt 
                                                Where checkit.DTLDPRRECNO = Delprice.DprRecNo 
                                                and checkit.DTLLITITENO = Itesto.istlitno)
-                              group by  delprice.dprrecno, Itesto.istlitno, delprice.delprice, delnettvalue, delfreeofchg, dprdelrecno;
+                              group by  delprice.dprrecno, Itesto.istlitno, delprice.delprice, delnettvalue, delfreeofchg, dprdelrecno, delhed.DlvOrdNo, delhed.DlvSalOffNo;
                               
                               
                 
@@ -168,7 +172,9 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
                             DTLBULKSALESQTY, 
                             DTLSOLDSALESQTY,  
                             DTLSALESVALUE,
-                            DTLOPENPRCQTY)
+                            DTLOPENPRCQTY,
+                            DTLDLVORDNO,
+                            DTLSALOFFNO)
                                         SELECT
                                               delprice.dprrecno
                                              ,itesto.istlitno
@@ -226,7 +232,9 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
                                                                        / to_number(PrePalInOut.PPPALOUTQTY) 
                                                                   end / Nvl(NULLIF(PrePalInOut.BoxWgtIn, 0.0), 1)
                                                             END
-                                                        END) 
+                                                        END),
+                                          delhed.DlvOrdNo,
+                                          delhed.DlvSalOffNo
                                         FROM prepalinout, prepalinoutsales, delprice, deldet, delhed, itesto
                                         WHERE itesto.istrecno = prepalinout.palinbulkistrec
                                         AND prepalinout.prepalrecno = prepalinoutsales.prepalinoutrecno
@@ -241,7 +249,7 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
                                                  from DPRSTOLOTS checkIt 
                                                  Where checkit.DTLDPRRECNO = Delprice.DprRecNo 
                                                  and checkit.DTLLITITENO = Itesto.istlitno)
-                                        GROUP BY delprice.dprrecno, itesto.istlitno, delprice.delprice, delnettvalue, delprice.delfreeofchg, delprice.dprdelrecno;
+                                        GROUP BY delprice.dprrecno, itesto.istlitno, delprice.delprice, delnettvalue, delprice.delfreeofchg, delprice.dprdelrecno, delhed.DlvOrdNo, delhed.DlvSalOffNo;
                                         
         UPDATE DPRSTOLOTS
         SET ISTRANSDEL = 1
@@ -462,11 +470,72 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_GETSALES AS
     FT_PK_ERRORS.LOG_AND_STOP;
     ROLLBACK;
   END GETSALES;
+  
+  PROCEDURE GETLOTS(LITITENO_IN LOTITE.LITITENO%TYPE) 
+  IS
+    PARAMETER_LIST      FT_PK_STRING_UTILS.TYPE_STRING_TOKENS;
+  BEGIN
+    IF LITITENO_IN IS NULL THEN
+      PARAMETER_LIST('#PARAMNAME') := 'LITITENO_IN';
+      PARAMETER_LIST('#PARAMVALUE') := TO_CHAR(LITITENO_IN);
+      FT_PK_ERRORS.RAISE_ERROR(FT_PK_ERRNUMS.FT_PARAMETER, PARAMETER_LIST);
+    END IF;  
     
-  PROCEDURE GETSALES IS
+    DELETE FROM BALTOLOTSCHGS 
+    WHERE BALTOLOTSCHGS.BTLRECNO IN(SELECT BALTOLOTS.BTLRECNO FROM BALTOLOTS WHERE BALTOLOTS.BTLLITITENO = LITITENO_IN);
+    
+    DELETE FROM BALTOLOTS 
+    WHERE BALTOLOTS.BTLLITITENO = LITITENO_IN;
+    
+    INSERT INTO BALTOLOTS(BTLLITITENO, BTLSALOFFNO,RCVQTY)
+    SELECT  ITESTO.ISTLITNO AS BTLLITITENO, 
+            NVL(ITESTO.TRNSALOFFNO, PURORD.PORSALOFF) AS BTLSALOFFNO, 
+            SUM(NVL(ITESTO.ISTORGQTY, 0)) + SUM(NVL(ITESTO.TRANSFERINQTY, 0)) AS RCVQTY
+    FROM ITESTO
+    INNER JOIN PURORD
+    ON ITESTO.ISTPONO = PURORD.PORNO
+    WHERE ITESTO.ISTLITNO = LITITENO_IN
+    GROUP BY ITESTO.ISTLITNO, NVL(ITESTO.TRNSALOFFNO, PURORD.PORSALOFF);
+    
+    UPDATE BALTOLOTS
+    SET ONSTOCKQTY = RCVQTY - NVL((SELECT SUM(DPRSTOLOTS.DTLBULKSALESQTY) FROM DPRSTOLOTS WHERE DPRSTOLOTS.DTLLITITENO = BALTOLOTS.BTLLITITENO AND DPRSTOLOTS.DTLSALOFFNO = BALTOLOTS.BTLSALOFFNO), 0)
+    WHERE BTLLITITENO = LITITENO_IN;
+      
+    INSERT INTO BALTOLOTSCHGS(BTLRECNO, ICHRECNO, CTYNO, CHARGECLASS, EXCLFROMPL, RAWAPP, BASEAPP, RAWAUTH, BASEAUTH)
+    SELECT  BALTOLOTS.BTLRECNO, 
+            ITECHG.ICHRECNO,
+            CHGTYP.CTYNO,
+            CHGTYP.CHARGECLASS,
+            NVL(EXPCHA.EXCRECOVFROMPL, 0),
+            NVL(ITECHG.ICHRAWAPPAMT, 0.0),
+            NVL(ITECHG.ICHAPPAMT, 0.0),
+            NVL(ITECHG.ICHRAWAUTHAMM, 0.0),
+            NVL(ITECHG.ICHAUTHAMM, 0.0)
+    FROM ITECHG
+    INNER JOIN CHGTYP
+      ON CHGTYP.CTYNO = ITECHG.CTYNO
+    INNER JOIN EXPCHA
+      ON EXPCHA.EXCCHAREC = ITECHG.EXCRECNO
+    INNER JOIN BALTOLOTS
+      ON BALTOLOTS.BTLLITITENO = ITECHG.LITRECNO AND BALTOLOTS.BTLSALOFFNO = EXPCHA.EXCSALOFF
+    WHERE ITECHG.LITRECNO = LITITENO_IN;
+    
+    COMMIT;
+  EXCEPTION
+    WHEN OTHERS THEN
+      ROLLBACK;
+      FT_PK_ERRORS.LOG_AND_STOP();
+  END GETLOTS;
+  
+  PROCEDURE GETSALES 
+  IS
   BEGIN  
     FOR AUTOCOSTSREC IN (SELECT AUTOCOSTS_PROCESS.DPRRECNO FROM AUTOCOSTS_PROCESS WHERE AUTOCOSTS_PROCESS.GETSALES = 1 AND AUTOCOSTS_PROCESS.DPRRECNO > 0) LOOP
       GETSALES(AUTOCOSTSREC.DPRRECNO);
+    END LOOP;
+    
+    FOR AUTOCOSTSREC IN (SELECT AUTOCOSTS_PROCESS.LITITENO FROM AUTOCOSTS_PROCESS WHERE AUTOCOSTS_PROCESS.GETSALES = 1 AND AUTOCOSTS_PROCESS.LITITENO > 0) LOOP
+      GETLOTS(AUTOCOSTSREC.LITITENO);
     END LOOP;
   EXCEPTION
     WHEN OTHERS THEN
