@@ -1,6 +1,6 @@
 create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.3'; -- Current Version Number
   
   CURSOR TC_IchOldAppAmt(IN_EXCRECNO INTEGER) IS
       Select IchRecNo, IchAppAmt FROM IteChg, chgtyp 
@@ -158,11 +158,11 @@ BEGIN
   IF V_CONT = 1 THEN   
     IF DlvIsDlvd = 1 THEN
       --link in deltoist as actual weight may be different
-      DTISel := '  SUM(Case When DelPricePer = 2 then DelNettweight * DisQty else PrcWeight * DisQty end) WeightTot_DLVD,';
+      DTISel := '  SUM(Case When DelPricePer = 2 then DelNettweight * DisQty else PrcWeight * DisQty end) WeightTot_DLVD, SUM(DisQty) DelQtyTot, ';
       DTITab := ', DelToIst';
       DTILnk := ' And DelPrice.DprRecNo = deltoist.DisDprRecNo(+)';
     ELSE
-      DTISel := ' NULL as WeightTot_DLVD, ';
+      DTISel := ' NULL as WeightTot_DLVD, SUM(DelPrcQty) DelQtyTot, ';
       DTITab := '';
       DTILnk := '';
     END IF; 
@@ -177,7 +177,7 @@ BEGIN
         --'   Sum(Case When PRCPACPAL = 0 then DelQty else Ceil(Round(delQty / PRCPACPAL, 2)) end) ActPalsTot,' ||
         --'   SUM((Select Count(PallocRecNo) from Paltodel Where PallocDelrecno  = DelDet.DELRECNO)) PaltoDelCount,' ||
         --'   SUM(DelPrcQty) DelQtyTot, ExcChaRec, ExcRawAmm, ExcConAmm, EXCTOEUROEXCRATE,EXCTOBASERATE,EXCAPPTYPE, EXCCHAPERRATE, Max(DelPrice.DELINVSTATUS) as MAX_DELINVSTATUS, ' ||
-        ' SUM(DelPrcQty) DelQtyTot,' ||
+        --' SUM(DelPrcQty) DelQtyTot,' ||
         ' EXCAPPTYPE, Max(DelPrice.DELINVSTATUS) as MAX_DELINVSTATUS,' ||
         '   NVL(Sum(DelNettValue), 0) DelNettValueTot,  ' ||
         '   Sum(RndApportPals) TotRndApportPals' ||
@@ -214,8 +214,8 @@ BEGIN
           FETCH RefCursorVar into ExcCtyNo,
                                   FWeightTot_ALLOC,
                                   FWeightTot_DLVD,
-                                  IRndPalsTot,
                                   IDelQtyTot,
+                                  IRndPalsTot,                                  
                                   IEXCAPPTYPE,
                                   IMAX_DELINVSTATUS,
                                   FDelNettValueTot,                                                                                            

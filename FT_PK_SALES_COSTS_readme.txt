@@ -24,6 +24,19 @@
 ****  
 *********************************************************************************
 
+
+
+	Spec Version 1.0.1
+	Body Version 1.0.3
+
+	Modified by: Stephen Richard Rimen
+	Modified on: 26/06/2015      	
+	Modified Log: 14516
+	Changes Made:      
+	1) LOTITEAPPORTION_DELPRICE changed DTISel so that DLV status deliveries use delToIst figures without duplicating them.
+
+*********************************************************************************	
+
 *********************************************************************************	                                        
 
 	Spec Version 1.0.1
