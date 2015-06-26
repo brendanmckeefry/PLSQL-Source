@@ -25,6 +25,18 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.3
+	Body Version 1.0.3
+
+	Modified by: Arshad Din
+	Modified on: 26/06/2015      	
+	Modified Log: 13465 - 13513
+	Changes Made:      
+	1) Purchase costs and routes costs added.
+	2) Lot balances added.
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.1
 	Body Version 1.0.1
 
