@@ -19,9 +19,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
       WHERE EXISTS (SELECT 1
                     From Dprstolots
                     Where DPRSTOLOTSCHGS.DTLCHGSDTLRECNO  = DPRSTOLOTS.DTLRECNO
-                    And Dprstolots.Dtldprrecno = Dprrecnos_In(Dprrec))
-      And Nvl(Dprstolotschgs.Dtlchgstypno,1) <> 2;              
-
+                    And Dprstolots.Dtldprrecno = Dprrecnos_In(Dprrec));
 
       DELETE FROM DPRSTOLOTS WHERE DTLDPRRECNO = DPRRECNOS_IN(DPRREC);
 
@@ -190,10 +188,10 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                                         Then
                                           0
                                         else
-                                           Case When (Exctobaserate = 1.00 Or Exctobaserate < 0.000009) 
-                                                Then Nvl(Ichappamt,0) 
+                                           Case When (Exctobaserate = 1.00 Or Exctobaserate < 0.000009)
+                                                Then Nvl(Ichappamt,0)
                                                 Else  Round(Nvl(Ichappamt,0) / Exctobaserate,2)
-                                                End  
+                                                End
                                         end Rawappamt
                                   ,Case When Abs(Dprstolots.Dtlopenprcqty) > 0.009
                                         Then
@@ -237,7 +235,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                                     ,NVL(EXCRECOVFROMPL,0)
                                     ,CTYNO
                                     ,Chargeclass
-                                    ,1 
+                                    ,1
                                     From(Select PreChgs.IchRecNo
                                           ,PreChgs.LitIteNo
                                           ,PreChgs.dprrecno
@@ -336,7 +334,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                                               Else
                                                 Case When Abs(PreChgs.delprcqty) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DTLSOLDSALESQTY)) / Abs(PreChgs.delprcqty)  else 0 end
                                               End
-                                          end,2) RawAppAmtPerBulkLot 
+                                          end,2) RawAppAmtPerBulkLot
 
                                   , Round(Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
                                           Then
@@ -385,7 +383,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
 
 
                                   )PreChgs;
-                                  
+
          INSERT INTO DPRSTOLOTSCHGS(
                                     DTLCHGSICHNO
                                    ,DTLCHGSDTLRECNO
@@ -409,7 +407,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                                                  Case When Abs(PreChgs.delprcqty) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DTLSOLDSALESQTY)) / Abs(PreChgs.delprcqty)  else 0 end
                                                End
                                            end,2) RawAppAmtPerBulkLot
-                                  
+
                                    , Round(Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
                                            Then
                                               0
@@ -454,10 +452,10 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                                                    from DPRSTOLOTSCHGS Checkit
                                                    Where CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
                                                    And CHECKIT.DTLCHGSICHNO = Itechg.IchRecNo)
-                                  
-                                  
-                                   )PreChgs;                          
-                                                                                                    
+
+
+                                   )PreChgs;
+
         INSERT INTO DPRSTOLOTSCHGS(
                                    DTLCHGSICHNO
                                   ,DTLCHGSDTLRECNO
@@ -474,7 +472,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                                           Then
                                              0
                                           Else
-                                             Case When Abs(Prechgs.Delprcqty) > 0 Then (Nvl(Rawappamt,0) * Abs(Prechgs.Dtlsoldsalesqty)) / Abs(Prechgs.Delprcqty)  Else 0 End                                  
+                                             Case When Abs(Prechgs.Delprcqty) > 0 Then (Nvl(Rawappamt,0) * Abs(Prechgs.Dtlsoldsalesqty)) / Abs(Prechgs.Delprcqty)  Else 0 End
                                           end,2) RawAppAmtPerBulkLot
 
                                   , Round(Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
@@ -495,17 +493,17 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                                   , delprcqty
                                   , delprice.delnettvalue
                                   , IchRecNo
-								  
+
                                   , Case When Nvl(DelQty,0) > 0
                                          then
-                                        (Case When (EXCTOBASERATE = 1.00 or EXCTOBASERATE < 0.000009) 
-                                             Then Nvl(Ichappamt,0) 
-                                             Else  Round(Nvl(Ichappamt,0) / Exctobaserate,2) 
+                                        (Case When (EXCTOBASERATE = 1.00 or EXCTOBASERATE < 0.000009)
+                                             Then Nvl(Ichappamt,0)
+                                             Else  Round(Nvl(Ichappamt,0) / Exctobaserate,2)
                                              end * NVL(Cast(delprcqty as Float),0)) / Cast(DelQty as Float)
                                      else 0
                                      End Rawappamt
-                                  , Case  When NVl(DelQty,0) > 0 
-                                          then (NVL(ICHAPPAMT,0) * Nvl(Cast(delprcqty as Float),0)) / Cast(DelQty as Float) 
+                                  , Case  When NVl(DelQty,0) > 0
+                                          then (NVL(ICHAPPAMT,0) * Nvl(Cast(delprcqty as Float),0)) / Cast(DelQty as Float)
                                           else 0
                                           end ICHAPPAMT---Split price issue resolved
                                   ,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
@@ -533,10 +531,10 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
 
 
                                   )PreChgs;
-                                  
-                                  
-                                  
-                                  
+
+
+
+
 
 
                       UPDATE DPRSTOLOTSCHGS
@@ -603,7 +601,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
 
     DELETE FROM BALTOLOTS
     WHERE BALTOLOTS.BTLLITITENO = LITITENO_IN;
-      
+
     INSERT INTO BALTOLOTS(BTLLITITENO
                           ,BTLSALOFFNO
                           ,RCVQTY)
@@ -613,24 +611,24 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                           FROM LOTITE, PURORD
                           WHERE LITPORREC = PORRECNO
                           AND  LOTITE.LITITENO = LITITENO_IN;
-                          
+
     UPDATE BALTOLOTS
     SET RCVQTY = NVL(RCVQTY,0) + (SELECT SUM(NVL(TRANSFERINQTY,0))
                                   FROM ITESTO
                                   WHERE TRNCALCMETH = 0
-                                  AND BTLLITITENO = ISTLITNO 
+                                  AND BTLLITITENO = ISTLITNO
                                   AND BTLSALOFFNO = TRNSALOFFNO
                                   AND ITESTO.ISTLITNO = LITITENO_IN)
     WHERE EXISTS (SELECT 1
                     FROM ITESTO
                     WHERE TRNCALCMETH = 0
-                    AND BTLLITITENO = ISTLITNO 
+                    AND BTLLITITENO = ISTLITNO
                     AND BTLSALOFFNO = TRNSALOFFNO
                     AND ITESTO.ISTLITNO = LITITENO_IN);
-                    
+
     INSERT INTO BALTOLOTS(BTLLITITENO
                           ,BTLSALOFFNO
-                          ,RCVQTY) 
+                          ,RCVQTY)
                           SELECT ISTLITNO
                           ,TRNSALOFFNO
                           ,SUM(NVL(TRANSFERINQTY,0))
@@ -638,12 +636,12 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                           WHERE TRNCALCMETH = 0
                           AND ITESTO.ISTLITNO = LITITENO_IN
                           And TRNSALOFFNO IS not null
-                          AND NOT EXISTS (SELECT 1 
-                                          FROM BALTOLOTS CHECKIT 
+                          AND NOT EXISTS (SELECT 1
+                                          FROM BALTOLOTS CHECKIT
                                           WHERE CHECKIT.BTLLITITENO = ITESTO.ISTLITNO
                                           AND CHECKIT.BTLSALOFFNO = ITESTO.TRNSALOFFNO)
-                          GROUP BY ISTLITNO, TRNSALOFFNO; 
-    
+                          GROUP BY ISTLITNO, TRNSALOFFNO;
+
     UPDATE BALTOLOTS
     SET ONSTOCKQTY = RCVQTY - NVL((SELECT SUM(DPRSTOLOTS.DTLBULKSALESQTY) FROM DPRSTOLOTS WHERE DPRSTOLOTS.DTLLITITENO = BALTOLOTS.BTLLITITENO AND DPRSTOLOTS.DTLSALOFFNO = BALTOLOTS.BTLSALOFFNO), 0)
     WHERE BTLLITITENO = LITITENO_IN;
@@ -673,19 +671,19 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
       ROLLBACK;
       FT_PK_ERRORS.LOG_AND_STOP();
   END GETLOTS;
-  
+
   PROCEDURE GETPURCHDPRSTOLOTS(LITITENO_IN LOTITE.LITITENO%TYPE)
   IS
     CURSOR GET_ROUNDING_TODO(LITITENO_IN INTEGER)
-    IS		
+    IS
 		SELECT MAXDTLCHGSRECNO, BaseDiff, RawDiff, RCVQTY, TOTBULKSOLDQTY
-		FROM (		
+		FROM (
 		SELECT BTLLITITENO, ITECHG.ICHRECNO, RCVQTY, MAX(DPRSTOLOTSCHGS.DTLCHGSRECNO) MAXDTLCHGSRECNO
-		, SUM(NVL(DTLBULKSALESQTY,0)) TOTBULKSOLDQTY, SUM(NVL(DTLCHGSRAWAPP,0)) TOTRAWAPP, SUM(NVL(DTLCHGSBASEAPP,0)) TOTBASEAPP 
+		, SUM(NVL(DTLBULKSALESQTY,0)) TOTBULKSOLDQTY, SUM(NVL(DTLCHGSRAWAPP,0)) TOTRAWAPP, SUM(NVL(DTLCHGSBASEAPP,0)) TOTBASEAPP
 		,ICHAPPAMT
 		,Nvl(ICHAPPAMT,0) - SUM(NVL(DTLCHGSBASEAPP,0)) BaseDiff
-		,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END RAWAPPAMT 
-		,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END - SUM(NVL(DTLCHGSRAWAPP,0)) RawDiff 
+		,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END RAWAPPAMT
+		,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END - SUM(NVL(DTLCHGSRAWAPP,0)) RawDiff
 		FROM BALTOLOTS, DPRSTOLOTS, DPRSTOLOTSCHGS, ITECHG, EXPCHA
 		WHERE BALTOLOTS.BTLLITITENO = DPRSTOLOTS.DTLLITITENO
 		AND BALTOLOTS.BTLSALOFFNO   = DPRSTOLOTS.DTLSALOFFNO
@@ -695,9 +693,9 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
 		AND DPRSTOLOTS.DTLLITITENO = LITITENO_IN
 		AND DTLCHGSTYPNO = 2
 		GROUP BY BTLLITITENO, ITECHG.ICHRECNO, RCVQTY, ITECHG.ICHAPPAMT,EXCTOBASERATE )
-		WHERE ABS(RCVQTY - TOTBULKSOLDQTY) < 0.009  
-		AND (ABS(NVL(BASEDIFF,0)) > 0.009 OR  ABS(NVL(RAWDIFF,0)) > 0.009);  
-  
+		WHERE ABS(RCVQTY - TOTBULKSOLDQTY) < 0.009
+		AND (ABS(NVL(BASEDIFF,0)) > 0.009 OR  ABS(NVL(RAWDIFF,0)) > 0.009);
+
     PARAMETER_LIST      FT_PK_STRING_UTILS.TYPE_STRING_TOKENS;
   BEGIN
     IF LITITENO_IN IS NULL THEN
@@ -709,7 +707,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
     DELETE FROM DPRSTOLOTSCHGS
     WHERE DPRSTOLOTSCHGS.DTLCHGSDTLRECNO IN(SELECT DPRSTOLOTS.DTLRECNO FROM DPRSTOLOTS WHERE DPRSTOLOTS.DTLLITITENO = LITITENO_IN)
 	  AND DPRSTOLOTSCHGS.DTLCHGSTYPNO = 2;
-		
+
 	INSERT INTO DPRSTOLOTSCHGS(
             DTLCHGSICHNO
            ,DTLCHGSDTLRECNO
@@ -719,7 +717,7 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
            ,DTLCHGSCTYNO
            ,DTLCHGSCHARGECLASS
 		   ,DTLCHGSTYPNO)
-		   SELECT 
+		   SELECT
 			 ICHRECNO
 			,DTLRECNO
 			,ROUND(CASE WHEN TOTQTY > 0 THEN (RAWAPPAMT * DTLBULKSALESQTY) /  TOTQTY ELSE 0 END, 2) LOTTODPRCHGAUTHAPPRAW
@@ -727,24 +725,24 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
 			,EXCRECOVFROMPL
 			,CTYNO
 			,CHARGECLASS
-			,2 
+			,2
 			FROM (
 			SELECT ICHRECNO
 			, DPRSTOLOTS.DTLRECNO
 			,DPRSTOLOTS.DTLDPRRECNO
 			,BALTOLOTS.BTLLITITENO
-			,BALTOLOTS.RCVQTY TOTQTY 
+			,BALTOLOTS.RCVQTY TOTQTY
 			,NVL(DTLBULKSALESQTY,0) DTLBULKSALESQTY
 			,NVL(ICHAPPAMT,0) ICHAPPAMT
 			,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END RAWAPPAMT
 			,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
 			,CHGTYP.CHARGECLASS
 			,CHGTYP.CTYNO
-			FROM ITECHG, BALTOLOTS,DPRSTOLOTS, EXPCHA, CHGTYP  
+			FROM ITECHG, BALTOLOTS,DPRSTOLOTS, EXPCHA, CHGTYP
 			WHERE ITECHG.LITRECNO= DPRSTOLOTS.DTLLITITENO
 			AND EXCRECNO = EXPCHA.EXCCHAREC
 			AND BALTOLOTS.BTLSALOFFNO = DPRSTOLOTS.DTLSALOFFNO
-			AND BALTOLOTS.BTLLITITENO = ITECHG.LITRECNO 
+			AND BALTOLOTS.BTLLITITENO = ITECHG.LITRECNO
 			AND EXPCHA.EXCSALOFF = DPRSTOLOTS.DTLSALOFFNO
 			AND ITECHG.CTYNO = CHGTYP.CTYNO
       AND ITECHG.LITRECNO = LITITENO_IN
@@ -752,30 +750,30 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                             FROM DPRSTOLOTSCHGS CHECKIT
                             WHERE CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
                             AND CHECKIT.DTLCHGSICHNO = ITECHG.ICHRECNO));
-    
-	
+
+
     FOR ROUNDING_REC_TODO IN GET_ROUNDING_TODO(LITITENO_IN) LOOP
       UPDATE DPRSTOLOTSCHGS
       SET DTLCHGSRAWAPP = DTLCHGSRAWAPP + ROUNDING_REC_TODO.RawDiff
       ,DTLCHGSBASEAPP = DTLCHGSBASEAPP + ROUNDING_REC_TODO.BASEDIFF
-      WHERE DPRSTOLOTSCHGS.DTLCHGSRECNO = ROUNDING_REC_TODO.MAXDTLCHGSRECNO;    
-    END LOOP;	
-    
+      WHERE DPRSTOLOTSCHGS.DTLCHGSRECNO = ROUNDING_REC_TODO.MAXDTLCHGSRECNO;
+    END LOOP;
+
     UPDATE BALTOLOTSCHGS
     SET ONSTOCKRAWAPP = RAWAPP - NVL((SELECT SUM(NVL(DTLCHGSRAWAPP,0)) FROM DPRSTOLOTSCHGS WHERE BALTOLOTSCHGS.ICHRECNO = DPRSTOLOTSCHGS.DTLCHGSICHNO),0)
     , ONSTOCKBASEAPP = BASEAPP - NVL((SELECT SUM(NVL(DTLCHGSBASEAPP,0)) FROM DPRSTOLOTSCHGS WHERE BALTOLOTSCHGS.ICHRECNO = DPRSTOLOTSCHGS.DTLCHGSICHNO),0)
-    WHERE BALTOLOTSCHGS.BTLRECNO in (Select BALTOLOTS.BTLRECNO 
-                                      FROM BALTOLOTS 
+    WHERE BALTOLOTSCHGS.BTLRECNO in (Select BALTOLOTS.BTLRECNO
+                                      FROM BALTOLOTS
                                       Where BALTOLOTS.BTLLITITENO = LITITENO_IN);
-                                      
+
   COMMIT;
   EXCEPTION
-    WHEN OTHERS THEN	
-      ROLLBACK;	  
+    WHEN OTHERS THEN
+      ROLLBACK;
       FT_PK_ERRORS.LOG_AND_STOP();
-	  
+
   END GETPURCHDPRSTOLOTS;
-  
+
   PROCEDURE GETSALES
   IS
   BEGIN
