@@ -41,3 +41,14 @@
 
 *********************************************************************************
 
+*********************************************************************************
+	Body Version 11.0.3                      
+
+	Modified by: Tim Vivian
+	Modified on: 01/07/2015      	
+	Modified Log: 
+	Changes Made:      
+	1) Added '--' after the final mime boundary to get rid of the ATT0001.TXT 
+           empty attached file created when displaying emails in Outlook
+
+*********************************************************************************

@@ -318,7 +318,8 @@ BEGIN
    END LOOP;
 
    RETURN_DESC1  := '130 - E: THERE WAS AN ERROR IN CLOSING MIME BOUNDARY. ';
-   L_MESG := CRLF || '--' || MIME_BOUNDARY || CRLF;
+   /* TV 1Jul15 added -- after the mime boundary to get rid of the empty ATT00001.TXT file in Outlook */
+   L_MESG := CRLF || '--' || MIME_BOUNDARY || '--' || CRLF;
 
    UTL_SMTP.WRITE_DATA ( CONN, L_MESG );
 
