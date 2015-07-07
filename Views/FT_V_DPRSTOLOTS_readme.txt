@@ -23,6 +23,22 @@
 ****  
 *********************************************************************************
 
+*********************************************************************************
+	Spec Version 1.0.3
+
+	Modified by: Arshad Din
+	Modified on: 07/07/2015      	
+	Modified Log: 14573
+	Changes Made:      
+	1) Added condition to include ONLY sales related charges (see code change below)
+ 
+		AND DPRSTOLOTSCHGS.DTLCHGSTYPNO in (1,3)
+
+		i)  If DPRSTOLOTSCHGS.DTLCHGSTYPNO = 1 then this is a sales cost linking on the dprrecno
+		ii) If DPRSTOLOTSCHGS.DTLCHGSTYPNO = 2 then this is a Purchase cost linking on the LitIteNo
+		iii)If DPRSTOLOTSCHGS.DTLCHGSTYPNO = 3 then this is a sales cost linking on the DelrecNo
+			 
+
 *********************************************************************************	                                        
 
 	Spec Version 1.0.2
