@@ -12,16 +12,35 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
     END IF;
   END CURRENTVERSION;
 
-  PROCEDURE GETSALES_INT(DPRRECNOS_IN RECORD_NUMBERS) IS
+  PROCEDURE GETSALES_INT(DPRRECNOS_IN RECORD_NUMBERS) 
+  IS
+    CURSOR DPRTOLOTS_CUR(DPRRECNO_IN INTEGER) 
+    IS
+    SELECT * 
+    FROM DPRSTOLOTS 
+    WHERE DPRSTOLOTS.DTLDPRRECNO = DPRRECNO_IN
+    ORDER BY DTLRECNO
+    FOR UPDATE;
+    
+    CURSOR DPRSTOLOTSCHGS_CUR(DPRRECNO_IN INTEGER) 
+    IS
+    SELECT * 
+    FROM DPRSTOLOTSCHGS
+    WHERE DPRSTOLOTSCHGS.DTLCHGSDTLRECNO IN(SELECT DPRSTOLOTS.DTLRECNO 
+                                            FROM DPRSTOLOTS
+                                            WHERE DPRSTOLOTS.DTLDPRRECNO = DPRRECNO_IN)
+    ORDER BY DTLCHGSRECNO
+    FOR UPDATE;
   BEGIN
     FOR DPRREC IN DPRRECNOS_IN.FIRST..DPRRECNOS_IN.LAST LOOP
-      DELETE FROM DPRSTOLOTSCHGS
-      WHERE EXISTS (SELECT 1
-                    From Dprstolots
-                    Where DPRSTOLOTSCHGS.DTLCHGSDTLRECNO  = DPRSTOLOTS.DTLRECNO
-                    And Dprstolots.Dtldprrecno = Dprrecnos_In(Dprrec));
-
-      DELETE FROM DPRSTOLOTS WHERE DTLDPRRECNO = DPRRECNOS_IN(DPRREC);
+    
+      FOR DPRTOLOTREC IN DPRSTOLOTSCHGS_CUR(DPRRECNOS_IN(DPRREC)) LOOP
+        DELETE FROM DPRSTOLOTSCHGS WHERE CURRENT OF DPRSTOLOTSCHGS_CUR;
+      END LOOP;
+    
+      FOR DPRTOLOTREC IN DPRTOLOTS_CUR(DPRRECNOS_IN(DPRREC)) LOOP
+        DELETE FROM DPRSTOLOTS WHERE CURRENT OF DPRTOLOTS_CUR;
+      END LOOP;
 
       INSERT INTO DPRSTOLOTS( DTLDPRRECNO,
                               DTLLITITENO,
@@ -169,10 +188,10 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                           Group By Delprice.Dprrecno, Itesto.Istlitno, Delprice.Delprice, Delnettvalue, Delprice.Delfreeofchg
 											    , delprice.dprdelrecno, delhed.DlvOrdNo, delhed.DlvSalOffNo, Prepalinout.PalOutWoRecNo;
 
-        Update Dprstolots
-        Set Istransdel = 1
-        Where Exists(Select * From Transferowner Where Dtldelrecno = Trotrandelrecno And Istranshiponly = 0)
-        And Dtldprrecno = Dprrecnos_In(Dprrec);
+        UPDATE DPRSTOLOTS
+        SET ISTRANSDEL = 1
+        WHERE EXISTS(SELECT * FROM TRANSFEROWNER WHERE DTLDELRECNO = TROTRANDELRECNO AND ISTRANSHIPONLY = 0)
+        AND DTLDPRRECNO = DPRRECNOS_IN(DPRREC);
 
         Insert Into Dprstolotschgs(Dtlchgsichno
                                   ,Dtlchgsdtlrecno
