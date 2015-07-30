@@ -439,8 +439,9 @@ BEGIN
           end if;
         end if;  
              
-        if V_CONT = 1 AND NOT LIgnoreCrDr Then
-        
+        IF V_CONT = 1 AND NOT LIGNORECRDR THEN
+          ITECHG_TO_WRITE := NULL;
+          
           InsertIt := Not FoundIte;
         
           if FoundIte = True Then
@@ -676,7 +677,8 @@ Begin
     LOOP    
     
        --if Box rate specified, recalculate the ExpCha (cannot apportion across itechgs until the total charge is correct for the updated number of boxes.)
-       begin
+       BEGIN
+         UpdExpChaRec := NULL;
          if VExcChaPerRate > 0.009 Then
            TotDelQtyOrWgt := 0;
            GetTotalDeliveryUnits(VExcAppType, IN_DLVORDNO, TotDelQtyOrWgt);                    
