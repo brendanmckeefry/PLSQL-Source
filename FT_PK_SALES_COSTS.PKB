@@ -1,6 +1,6 @@
 create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.3'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.4'; -- Current Version Number
   
   CURSOR TC_IchOldAppAmt(IN_EXCRECNO INTEGER) IS
       Select IchRecNo, IchAppAmt FROM IteChg, chgtyp 
@@ -386,7 +386,8 @@ BEGIN
             FROM ITECHG
             WHERE ExcRecNo  = IN_EXCRECNO
             AND DPRRECNO    = DlvToExp_REC.DprRecNo
-            AND ICHISTRECNO = DlvToExp_REC.DisIstRecNo;
+            AND ICHISTRECNO = DlvToExp_REC.DisIstRecNo
+            AND ROWNUM = 1;
           EXCEPTION
             WHEN NO_DATA_FOUND THEN
               V_IchRecNo  := NULL;
@@ -408,7 +409,8 @@ BEGIN
             FROM ITECHG
             WHERE ExcRecNo = IN_EXCRECNO
             AND DPRRECNO = DlvToExp_REC.DprRecNo
-            AND ICHISTRECNO IS NULL;
+            AND ICHISTRECNO IS NULL
+            AND ROWNUM = 1;
           EXCEPTION
             WHEN NO_DATA_FOUND THEN
               V_IchRecNo  := NULL;
