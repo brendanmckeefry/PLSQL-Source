@@ -1,7 +1,7 @@
 SET DEFINE OFF;
     CREATE OR REPLACE PACKAGE BODY FT_PK_STOCKDISSECTION
     AS
-      cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
+      cVersionControlNo   VARCHAR2(12) := '1.0.3'; -- Current Version Number
     
       --VARIABLES FOR OVER SOLD DETAILS
       GLBALLOCNO                    NUMBER(10)        :=0; 
@@ -971,7 +971,8 @@ SET DEFINE OFF;
             BEGIN 
                 UPDATE STKDISS_DETS_ONALLOC
                 SET OVERSOLDLINE = 1 
-                WHERE EXISTS ( SELECT 1 FROM LOTITE_LINK WHERE LOTITE_LINK.NEWLITITENO = STKDISS_DETS_ONALLOC.LITITENO AND  LOTITE_LINK.STATUS = 1);                       
+		WHERE STKDISSHDR_RECNO = V_HDRRECNO 
+                AND EXISTS ( SELECT 1 FROM LOTITE_LINK WHERE LOTITE_LINK.NEWLITITENO = STKDISS_DETS_ONALLOC.LITITENO AND  LOTITE_LINK.STATUS = 1);                       
                 COMMIT;
          EXCEPTION             
                 WHEN NO_DATA_FOUND THEN
