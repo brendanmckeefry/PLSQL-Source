@@ -18,6 +18,20 @@
  ****  	Original Log Number: 	                
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.2
+ ****  	Body Version 1.0.3
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     11/08/2015      		
+ ****  	Last Modified Log:    13531 	
+ ****  	Change Made:          
+	(1)	A query in EXTRACTONALLOC_DETS  to FLAG THE OVERSOLD LINES was quite slow as it did not have the following limiter
+	WHERE STKDISSHDR_RECNO = V_HDRRECNO 
+
+	
+
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.2
  ****  	Body Version 1.0.2
  ****************************************************************************************************** 
  ****  	                                        
