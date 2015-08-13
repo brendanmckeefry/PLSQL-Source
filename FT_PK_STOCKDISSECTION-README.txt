@@ -15,7 +15,25 @@
  ****  	                                        
  ****  	Writen by Brendan McKeefry              
  ****  	Date: Dec 2014                          
- ****  	Original Log Number: 	                
+ ****  	Original Log Number: 	
+
+                
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.2
+ ****  	Body Version 1.0.4
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     13/08/2015      		
+ ****  	Last Modified Log:    13531 	
+ ****  	Change Made:          
+	(1)	SOMETHING WAS CREATING DELTOALLS WITH -VE QTYIES AND SO THIS ADDED IN A CALL TO FT_PK_ALLOCATE_CHECK.REPAIR_DELTOALL_MIN TO CLEARS THEM DOWN BEFORE STOCK DISSECTION IS RUN
+		A FRIG BUT A NECESSARY ONE (BMK)
+		i PUT THIS INTO WRITEMISSINGALLOCDETS   WHICH IS ALREADY A BIT OF A FRIG 
+
+
+
+                
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.2
  ****  	Body Version 1.0.3
