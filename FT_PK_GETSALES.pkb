@@ -1,9 +1,10 @@
 create or replace PACKAGE BODY FT_PK_GETSALES AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.3'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.4'; -- Current Version Number
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
   IS
+    
   BEGIN
     IF  IN_BODYORSPEC = CONST.C_SPEC THEN
       RETURN cSpecVersionControlNo;
@@ -11,572 +12,680 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
       RETURN cVersionControlNo;
     END IF;
   END CURRENTVERSION;
-
-  PROCEDURE GETSALES_INT(DPRRECNOS_IN RECORD_NUMBERS) 
+  
+  PROCEDURE GETSALES_INT(DPRRECNOS_IN RECORD_NUMBERS)
   IS
+     
+    TYPE  DPRTOLOTSKEY_TAB IS TABLE OF NUMBER(10) INDEX BY PLS_INTEGER;
+    DPRTOLOTSKEYDYNARR DPRTOLOTSKEY_TAB;
+    COUNTSI SMALLINT;
+    DPRTOLOTSIDX  SMALLINT;
+    DPRTOLOTSKEY  DPRSTOLOTS.DTLRECNO%TYPE;
+        
     CURSOR DPRTOLOTS_CUR(DPRRECNO_IN INTEGER) 
     IS
-    SELECT * 
-    FROM DPRSTOLOTS 
-    WHERE DPRSTOLOTS.DTLDPRRECNO = DPRRECNO_IN
-    ORDER BY DTLRECNO
-    FOR UPDATE;
+      SELECT * 
+      FROM DPRSTOLOTS 
+      WHERE DPRSTOLOTS.DTLDPRRECNO = DPRRECNO_IN
+      ORDER BY DTLRECNO;
     
     CURSOR DPRSTOLOTSCHGS_CUR(DPRRECNO_IN INTEGER) 
     IS
-    SELECT * 
-    FROM DPRSTOLOTSCHGS
-    WHERE DPRSTOLOTSCHGS.DTLCHGSDTLRECNO IN(SELECT DPRSTOLOTS.DTLRECNO 
-                                            FROM DPRSTOLOTS
-                                            WHERE DPRSTOLOTS.DTLDPRRECNO = DPRRECNO_IN)
-    ORDER BY DTLCHGSRECNO
-    FOR UPDATE;
+      SELECT * 
+      FROM DPRSTOLOTSCHGS, DPRSTOLOTS
+      WHERE DPRSTOLOTSCHGS.DTLCHGSDTLRECNO = DPRSTOLOTS.DTLRECNO 
+      AND DPRSTOLOTS.DTLDPRRECNO = DPRRECNO_IN
+      ORDER BY DTLCHGSRECNO;
+    
+    CURSOR BULKSALESCURSOR(DPRRECNO_IN INTEGER)
+    IS
+      SELECT delprice.dprrecno
+      ,Itesto.istlitno
+      ,delprice.dprdelrecno
+      ,SUM(Case When (Abs(NVL(delprice.delprice, 0)) > 0.009
+           OR Abs(NVL (delnettvalue, 0)) > 0.009
+           OR NVL(DELPRICE.DELFREEOFCHG, 0) = 1) --exclude openprice
+                then
+                NVL(deltoist.DISSTKQTY,0)
+                else
+                0
+                end) bulkqty
+    
+      ,SUM(Case When (Abs(NVL(delprice.delprice, 0)) > 0.009
+           OR Abs(NVL (delnettvalue, 0)) > 0.009
+           OR NVL(delprice.delfreeofchg, 0) = 1) --exclude openprice
+                then
+                NVL(deltoist.DISSTKQTY,0)
+                else
+                0
+                END) SOLDQTY
+      ,SUM(NVL(DELTOIST.DISNETTVALUE,0)) NETTVALUE
+      ,SUM(Case When (Abs(NVL(delprice.delprice, 0)) > 0.009
+           OR Abs(NVL (delnettvalue, 0)) > 0.009
+           OR NVL(delprice.delfreeofchg, 0) = 1) --exclude openprice
+                then
+                0
+                else
+                NVL(deltoist.DISSTKQTY,0)
+                end) OpenPrcQty,
+      delhed.DlvOrdNo,
+      delhed.DlvSalOffNo
+        From Deltoist,deldet, delprice, delhed, itesto, Purord
+        Where delprice.dprrecno = Deltoist.disdprrecno
+        and deltoist.DISISTRECNO = Itesto.ISTRECNO
+        And delprice.dprdelrecno = deldet.delrecno
+        and deldet.deldlvordno = delhed.dlvordno
+        And Itesto.IstPoNo = PurOrd.PorNo
+        AND (delhed.dlvrelinv <> 'Pik') -- Exclude updated pik status
+        AND (delhed.dlvtransship IS NULL OR NVL (delhed.transferflg, 0) > 0)
+        AND NVL (DELHED.DLVSALTYP, 'S') <> 'R'
+        AND delprice.DPRRECNO  = DPRRECNO_IN
+        AND NOT exists ( Select 1
+                         from DPRSTOLOTS checkIt
+                         Where checkit.DTLDPRRECNO = Delprice.DprRecNo
+                         AND CHECKIT.DTLLITITENO = ITESTO.ISTLITNO)
+        GROUP BY  DELPRICE.DPRRECNO, ITESTO.ISTLITNO, DELPRICE.DELPRICE, DELNETTVALUE, DELFREEOFCHG, DPRDELRECNO, DELHED.DLVORDNO, DELHED.DLVSALOFFNO;
+        
+  cursor PREPSALESCURSOR(DPRRECNO_IN integer)    
+    is
+      select
+      DELPRICE.DPRRECNO
+     ,ITESTO.ISTLITNO
+     ,DELPRICE.DPRDELRECNO
+     ,SUM( case when (ABS(NVL(DELPRICE.DELPRICE, 0)) > 0.009
+               or ABS(NVL (DELNETTVALUE, 0)) > 0.009
+               or NVL(DELPRICE.DELFREEOFCHG, 0) = 1
+              ) --exclude openprice
+                then
+                    case
+                    when NVL (PREPALINOUT.INISWGTCNT, 0) = 0
+                    then  case
+                          when NVL(PREPALINOUT.PPPALOUTQTY,0) = 0
+                          then 0
+                          else (NVL(TO_NUMBER(NVL(PREPALINOUT.PPALINQTYDEC,PREPALINOUT.PPPALINQTY)) ,0) * NVL(PREPALINOUTSALES.DPRQTYTHIS,0))
+                               / TO_NUMBER(PREPALINOUT.PPPALOUTQTY)
+                          end
+                    else  case when NVL(PREPALINOUT.PPPALOUTQTY,0) = 0
+                          then 0
+                          else (NVL(TO_NUMBER(NVL(PREPALINOUT.PPALINQTYDEC,PREPALINOUT.PPPALINQTY)) ,0) * NVL(PREPALINOUTSALES.DPRQTYTHIS,0))
+                               / TO_NUMBER(PREPALINOUT.PPPALOUTQTY)
+                          end / NVL(NULLIF(PREPALINOUT.BOXWGTIN, 0.0), 1)
+                    end
+                else
+                    0
+                end) BULKQTY
+     ,SUM (case when (ABS(NVL(DELPRICE.DELPRICE, 0)) > 0.009
+               or ABS(NVL (DELNETTVALUE, 0)) > 0.009
+               or NVL(DELPRICE.DELFREEOFCHG, 0) = 1
+              ) --exclude openprice
+                then
+                    NVL(DPRQTYTHIS,0)
+                else
+                    0
+                end) SOLDQTY
+     ,SUM(NVL(DPRBASEVALTHIS,0)) NETTVALUE
+     ,SUM (case when (ABS(NVL(DELPRICE.DELPRICE, 0)) > 0.009
+               or ABS(NVL (DELNETTVALUE, 0)) > 0.009
+               or NVL(DELPRICE.DELFREEOFCHG, 0) = 1
+              ) --exclude openprice
+                then
+                    0
+                else
+                    case
+                    when NVL (PREPALINOUT.INISWGTCNT, 0) = 0
+                    then  case
+                          when NVL(PREPALINOUT.PPPALOUTQTY,0) = 0
+                          then 0
+                          else (NVL(TO_NUMBER(NVL(PREPALINOUT.PPALINQTYDEC,PREPALINOUT.PPPALINQTY)) ,0) * NVL(PREPALINOUTSALES.DPRQTYTHIS,0))
+                               / TO_NUMBER(PREPALINOUT.PPPALOUTQTY)
+                          end
+                    else  case when NVL(PREPALINOUT.PPPALOUTQTY,0) = 0
+                          then 0
+                          else (NVL(TO_NUMBER(NVL(PREPALINOUT.PPALINQTYDEC,PREPALINOUT.PPPALINQTY)) ,0) * NVL(PREPALINOUTSALES.DPRQTYTHIS,0))
+                               / TO_NUMBER(PREPALINOUT.PPPALOUTQTY)
+                          end / NVL(NULLIF(PREPALINOUT.BOXWGTIN, 0.0), 1)
+                    end
+                end) OPENPRCQTY,
+      DELHED.DLVORDNO,
+      DELHED.DLVSALOFFNO,
+      PREPALINOUT.PALOUTWORECNO
+      from PREPALINOUT, PREPALINOUTSALES, DELPRICE, DELDET, DELHED, ITESTO
+      where ITESTO.ISTRECNO = PREPALINOUT.PALINBULKISTREC
+      and PREPALINOUT.PREPALRECNO = PREPALINOUTSALES.PREPALINOUTRECNO
+      and PREPALINOUTSALES.DELPRCRECNO = DELPRICE.DPRRECNO
+      and DELPRICE.DPRDELRECNO = DELDET.DELRECNO
+      and DELDET.DELDLVORDNO = DELHED.DLVORDNO
+      and (DELHED.DLVRELINV <> 'Pik') -- Exclude updated pik status
+      and (DELHED.DLVTRANSSHIP is null or NVL (DELHED.TRANSFERFLG, 0) > 0)
+      and NVL (DELHED.DLVSALTYP, 'S') <> 'R'
+      and DELPRICE.DPRRECNO = DPRRECNO_IN
+      and not exists (select 1
+                      from DPRSTOLOTS CHECKIT
+                      where CHECKIT.DTLDPRRECNO = DELPRICE.DPRRECNO
+                      and CHECKIT.DTLLITITENO = ITESTO.ISTLITNO
+                      and CHECKIT.DTLWORECNO = PREPALINOUT.PALOUTWORECNO)
+      group by DELPRICE.DPRRECNO, ITESTO.ISTLITNO, DELPRICE.DELPRICE, DELNETTVALUE, DELPRICE.DELFREEOFCHG
+      , DELPRICE.DPRDELRECNO, DELHED.DLVORDNO, DELHED.DLVSALOFFNO, PREPALINOUT.PALOUTWORECNO;
+ 
+  cursor BULKDPRCHGS(DPRRECNO_IN integer)
+        is   
+          select ICHRECNO
+          ,DTLRECNO
+          ,case when ABS(DPRSTOLOTS.DTLOPENPRCQTY) > 0.009
+                then
+                  0
+                else
+                   case when (EXCTOBASERATE = 1.00 or EXCTOBASERATE < 0.000009)
+                        then NVL(ICHAPPAMT,0)
+                        else  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2)
+                        end
+                end RAWAPPAMT
+          ,case when ABS(DPRSTOLOTS.DTLOPENPRCQTY) > 0.009
+                then
+                  0
+                else
+                  NVL(ICHAPPAMT,0)
+                end ICHAPPAMT
+          ,NVL(EXPCHA.EXCRECOVFROMPL, 0) EXCRECOVFROMPL
+          ,CHGTYP.CTYNO
+          ,CHGTYP.CHARGECLASS
+          ,1 DTLCHGSTYPNO
+          from ITECHG,EXPCHA,ITESTO, PURORD, DPRSTOLOTS, CHGTYP
+          where ITECHG.DPRRECNO = DPRRECNO_IN
+          and ICHISTRECNO = ITESTO.ISTRECNO
+          and ITECHG.EXCRECNO = EXPCHA.EXCCHAREC
+          and ITESTO.ISTPONO = PURORD.PORNO
+          and CHGTYP.CTYNO = ITECHG.CTYNO
+          and ABS(NVL(ICHAPPAMT,0)) > 0.009
+          and DPRSTOLOTS.DTLDPRRECNO = ITECHG.DPRRECNO
+          and DPRSTOLOTS.DTLLITITENO = ITESTO.ISTLITNO
+          and DPRSTOLOTS.DTLWORECNO is null
+          and not exists (select 1
+                          from DPRSTOLOTSCHGS CHECKIT
+                          where CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
+                          and CHECKIT.DTLCHGSICHNO = ITECHG.ICHRECNO);
+                           
+  CURSOR PREPDPRCHGS(DPRRECNO_IN INTEGER)
+  IS
+            SELECT ICHRECNO
+            ,DTLRECNO
+            ,SUM(NVL(RAWAPPAMTPERBULKLOT,0)) RAWAPPAMT
+            ,SUM(NVL(APPAMTPERBULKLOT,0)) ICHAPPAMT
+            ,NVL(EXCRECOVFROMPL,0) EXCRECOVFROMPL
+            ,CTYNO
+            ,CHARGECLASS
+            ,1 DTLCHGSTYPNO
+            FROM(SELECT PRECHGS.ICHRECNO
+                  ,PRECHGS.LITITENO
+                  ,PRECHGS.DPRRECNO
+                  ,PRECHGS.ICHAPPAMT
+                  ,PRECHGS.RAWAPPAMT
+                  ,PRECHGS.DPRQTYTHIS
+                  ,PRECHGS.DISQTY
+                  ,DPRSTOLOTS.DTLRECNO
+                  ,ROUND(
+                    CASE WHEN ABS(DPRSTOLOTS.DTLOPENPRCQTY) > 0.009
+                    THEN
+                      0
+                    ELSE
+                      CASE WHEN NVL(DPRISPRICEADJONLY,0) = 1
+                      THEN
+                        CASE WHEN ABS(PRECHGS.DISNETTVALUE) > 0 THEN (NVL(ICHAPPAMT,0) * ABS(PRECHGS.DPRBASEVALTHIS)) / ABS(PRECHGS.DISNETTVALUE)  ELSE 0 END
+                      ELSE
+                        CASE WHEN ABS(PRECHGS.DISQTY) > 0 THEN (NVL(ICHAPPAMT,0) * ABS(PRECHGS.DPRQTYTHIS)) / ABS(PRECHGS.DISQTY)  ELSE 0 END
+                      END
+                    END,2) APPAMTPERBULKLOT
+                  ,ROUND(
+                    CASE WHEN ABS(DPRSTOLOTS.DTLOPENPRCQTY) > 0.009
+                    THEN
+                      0
+                    ELSE
+                      CASE WHEN NVL(DPRISPRICEADJONLY,0) = 1
+                      THEN
+                        CASE WHEN ABS(PRECHGS.DISNETTVALUE) > 0 THEN (NVL(RAWAPPAMT,0) * ABS(PRECHGS.DPRBASEVALTHIS)) / ABS(PRECHGS.DISNETTVALUE)  ELSE 0 END
+                      ELSE
+                        CASE WHEN ABS(PRECHGS.DISQTY) > 0 THEN (NVL(RAWAPPAMT,0) * ABS(PRECHGS.DPRQTYTHIS)) / ABS(PRECHGS.DISQTY)  ELSE 0 END
+                      END
+                    END,2)  RAWAPPAMTPERBULKLOT
+                  ,PRECHGS.EXCRECOVFROMPL
+                  ,PRECHGS.CTYNO
+                  ,PRECHGS.CHARGECLASS
+                  ,PRECHGS.PALOUTWORECNO
+                  FROM(
+                        SELECT ICHRECNO
+                        ,BULKLOTITE.LITITENO
+                        ,ITECHG.DPRRECNO
+                        ,NVL(ICHAPPAMT,0) ICHAPPAMT
+                        ,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END RAWAPPAMT
+                        ,NVL(PREPALINOUTSALES.DPRQTYTHIS,0) DPRQTYTHIS
+                        ,NVL(PREPALINOUTSALES.DPRBASEVALTHIS,0) DPRBASEVALTHIS
+                        ,NVL(DELTOIST.DISQTY, 0) DISQTY
+                        ,NVL(DELTOIST.DISNETTVALUE, 0) DISNETTVALUE
+                        ,NVL(EXPCHA.EXCRECOVFROMPL, 0) EXCRECOVFROMPL
+                        ,CHGTYP.CTYNO
+                        ,CHGTYP.CHARGECLASS
+                        ,DELPRICE.DPRISPRICEADJONLY
+                        ,PREPALINOUT.PALOUTWORECNO
+                        FROM ITECHG,EXPCHA,ITESTO PREPIST, LOTITE PREPLOT, PREPALINOUT, PREPALINOUTSALES, ITESTO BULKIST, LOTITE BULKLOTITE, DELTOIST,DELPRICE,CHGTYP
+                        WHERE ITECHG.ICHISTRECNO = PREPIST.ISTRECNO
+                        AND ITECHG.DPRRECNO = DPRRECNO_IN
+                        AND  ITECHG.ICHISTRECNO = DELTOIST.DISISTRECNO
+                        AND ITECHG.DPRRECNO = DELPRICE.DPRRECNO
+                        AND DELTOIST.DISDPRRECNO = ITECHG.DPRRECNO
+                        AND ITECHG.EXCRECNO = EXPCHA.EXCCHAREC
+                        AND ITECHG.CTYNO = CHGTYP.CTYNO
+                        AND PREPIST.ISTLITNO = PREPLOT.LITITENO
+                        AND PREPLOT.LITWORECNO = PREPALINOUT.PALOUTWORECNO
+                        AND PREPALINOUT.PREPALRECNO = PREPALINOUTSALES.PREPALINOUTRECNO
+                        AND PREPALINOUTSALES.DELPRCRECNO = ITECHG.DPRRECNO
+                        AND PREPALINOUT.PALINBULKISTREC = BULKIST.ISTRECNO
+                        AND BULKIST.ISTLITNO = BULKLOTITE.LITITENO
+                        AND ABS(NVL(ICHAPPAMT,0)) > 0.009) PRECHGS,DPRSTOLOTS
+                  WHERE DPRSTOLOTS.DTLDPRRECNO = PRECHGS.DPRRECNO
+                  AND DPRSTOLOTS.DTLLITITENO = PRECHGS.LITITENO
+                  AND DPRSTOLOTS.DTLWORECNO = PRECHGS.PALOUTWORECNO
+                  AND NOT EXISTS (SELECT 1
+                                  FROM DPRSTOLOTSCHGS CHECKIT
+                                  WHERE CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
+                                  AND CHECKIT.DTLCHGSICHNO = PRECHGS.ICHRECNO))
+            GROUP BY ICHRECNO,DTLRECNO,EXCRECOVFROMPL,CTYNO,CHARGECLASS;
+                 
+  CURSOR PREPCHGNULLISTCURSOR(DPRRECNO_IN INTEGER)
+  IS
+    SELECT PRECHGS.ICHRECNO
+    ,PRECHGS.DTLRECNO
+    , ROUND(
+            CASE WHEN ABS(PRECHGS.DTLOPENPRCQTY) > 0.009
+            THEN
+               0
+            ELSE
+               CASE WHEN NVL(DPRISPRICEADJONLY,0) = 1
+                THEN
+                  CASE WHEN ABS(PRECHGS.DELNETTVALUE) > 0 THEN (NVL(RAWAPPAMT,0) * ABS(PRECHGS.DTLSALESVALUE)) / ABS(PRECHGS.DELNETTVALUE)  ELSE 0 END
+                ELSE
+                  CASE WHEN ABS(PRECHGS.DELPRCQTY) > 0 THEN (NVL(RAWAPPAMT,0) * ABS(PRECHGS.DTLSOLDSALESQTY)) / ABS(PRECHGS.DELPRCQTY)  ELSE 0 END
+                END
+            END,2) RAWAPPAMTPERBULKLOT
+    
+    , ROUND(CASE WHEN ABS(PRECHGS.DTLOPENPRCQTY) > 0.009
+            THEN
+               0
+            ELSE
+              CASE WHEN NVL(DPRISPRICEADJONLY,0) = 1
+              THEN
+                CASE WHEN ABS(PRECHGS.DELNETTVALUE) > 0 THEN (NVL(ICHAPPAMT,0) * ABS(PRECHGS.DTLSALESVALUE)) / ABS(PRECHGS.DELNETTVALUE)  ELSE 0 END
+              ELSE
+                CASE WHEN ABS(PRECHGS.DELPRCQTY) > 0 THEN (NVL(ICHAPPAMT,0) * ABS(PRECHGS.DTLSOLDSALESQTY)) / ABS(PRECHGS.DELPRCQTY)  ELSE 0 END
+              END
+            END, 2) APPAMTPERBULKLOT
+    ,PRECHGS.EXCRECOVFROMPL
+    ,PRECHGS.CTYNO
+    ,PRECHGS.CHARGECLASS
+    ,1 DTLCHGSTYPNO
+    FROM (
+    SELECT DTLRECNO
+    , DTLDPRRECNO
+    , DTLLITITENO
+    , DTLSOLDSALESQTY
+    , DELPRCQTY
+    , DELPRICE.DELNETTVALUE
+    , ICHRECNO
+    ,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END RAWAPPAMT
+    ,ICHAPPAMT
+    ,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
+    ,CHGTYP.CTYNO
+    ,CHGTYP.CHARGECLASS
+    ,DELPRICE.DPRRECNO
+    ,DTLSALESVALUE
+    ,NVL(DPRISPRICEADJONLY,0) DPRISPRICEADJONLY
+    ,DTLOPENPRCQTY
+    FROM ITECHG,EXPCHA, DELPRICE, DPRSTOLOTS, CHGTYP
+    WHERE ICHISTRECNO IS NULL
+    AND ITECHG.EXCRECNO = EXPCHA.EXCCHAREC
+    AND ITECHG.CTYNO = CHGTYP.CTYNO
+    AND ITECHG.DPRRECNO = DELPRICE.DPRRECNO
+    AND ITECHG.DPRRECNO = DPRRECNO_IN
+    AND ABS(NVL(ICHAPPAMT,0)) > 0.009
+    AND DPRSTOLOTS.DTLDPRRECNO = ITECHG.DPRRECNO
+    AND NOT EXISTS (SELECT 1
+                    FROM DPRSTOLOTSCHGS CHECKIT
+                    WHERE CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
+                    AND CHECKIT.DTLCHGSICHNO = ITECHG.ICHRECNO)
+    
+    
+    )PRECHGS;
+        
+  CURSOR PREPSALESCHGNOEXPCUR(DPRRECNO_IN INTEGER)
+  IS
+    SELECT PRECHGS.ICHRECNO
+   ,PRECHGS.DTLRECNO
+   , ROUND(
+           CASE WHEN ABS(PRECHGS.DTLOPENPRCQTY) > 0.009
+           THEN
+              0
+           ELSE
+              CASE WHEN NVL(DPRISPRICEADJONLY,0) = 1
+               THEN
+                 CASE WHEN ABS(PRECHGS.DELNETTVALUE) > 0 THEN (NVL(RAWAPPAMT,0) * ABS(PRECHGS.DTLSALESVALUE)) / ABS(PRECHGS.DELNETTVALUE)  ELSE 0 END
+               ELSE
+                 CASE WHEN ABS(PRECHGS.DELPRCQTY) > 0 THEN (NVL(RAWAPPAMT,0) * ABS(PRECHGS.DTLSOLDSALESQTY)) / ABS(PRECHGS.DELPRCQTY)  ELSE 0 END
+               END
+           END,2) RAWAPPAMTPERBULKLOT
+  
+   , ROUND(CASE WHEN ABS(PRECHGS.DTLOPENPRCQTY) > 0.009
+           THEN
+              0
+           ELSE
+             CASE WHEN NVL(DPRISPRICEADJONLY,0) = 1
+             THEN
+               CASE WHEN ABS(PRECHGS.DELNETTVALUE) > 0 THEN (NVL(ICHAPPAMT,0) * ABS(PRECHGS.DTLSALESVALUE)) / ABS(PRECHGS.DELNETTVALUE)  ELSE 0 END
+             ELSE
+               CASE WHEN ABS(PRECHGS.DELPRCQTY) > 0 THEN (NVL(ICHAPPAMT,0) * ABS(PRECHGS.DTLSOLDSALESQTY)) / ABS(PRECHGS.DELPRCQTY)  ELSE 0 END
+             END
+           END, 2) APPAMTPERBULKLOT
+   ,PRECHGS.EXCRECOVFROMPL
+   ,PRECHGS.CTYNO
+   ,PRECHGS.CHARGECLASS
+   ,1 DTLCHGSTYPNO
+   FROM (
+   SELECT DTLRECNO
+   , DTLDPRRECNO
+   , DTLLITITENO
+   , DTLSOLDSALESQTY
+   , DELPRCQTY
+   , DELPRICE.DELNETTVALUE
+   , ICHRECNO
+   ,CASE WHEN (DELTOBASERATE = 1.00 OR DELTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / DELTOBASERATE,2) END RAWAPPAMT
+   ,ICHAPPAMT
+   ,0 EXCRECOVFROMPL
+   ,CHGTYP.CTYNO
+   ,CHGTYP.CHARGECLASS
+   ,DELPRICE.DPRRECNO
+   ,DTLSALESVALUE
+   ,NVL(DPRISPRICEADJONLY,0) DPRISPRICEADJONLY
+   ,DTLOPENPRCQTY
+   FROM ITECHG, DELPRICE, DPRSTOLOTS, CHGTYP
+   WHERE ICHISTRECNO IS NULL
+   AND ITECHG.EXCRECNO IS NULL
+   AND ITECHG.CTYNO = CHGTYP.CTYNO
+   AND ITECHG.DPRRECNO = DELPRICE.DPRRECNO
+   AND ITECHG.DPRRECNO = DPRRECNO_IN
+   AND ABS(NVL(ICHAPPAMT,0)) > 0.009
+   AND DPRSTOLOTS.DTLDPRRECNO = ITECHG.DPRRECNO
+   AND NOT EXISTS (SELECT 1
+                   FROM DPRSTOLOTSCHGS CHECKIT
+                   WHERE CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
+                   AND CHECKIT.DTLCHGSICHNO = ITECHG.ICHRECNO)
+   )PRECHGS;
+   
+   CURSOR SALESRTECHGS(DPRRECNO_IN INTEGER)
+   IS
+      SELECT PRECHGS.ICHRECNO
+      ,PRECHGS.DTLRECNO
+      , ROUND(
+              CASE WHEN ABS(PRECHGS.DTLOPENPRCQTY) > 0.009
+              THEN
+                 0
+              ELSE
+                 CASE WHEN ABS(PRECHGS.DELPRCQTY) > 0 THEN (NVL(RAWAPPAMT,0) * ABS(PRECHGS.DTLSOLDSALESQTY)) / ABS(PRECHGS.DELPRCQTY)  ELSE 0 END
+              END,2) RAWAPPAMTPERBULKLOT
+
+      , ROUND(CASE WHEN ABS(PRECHGS.DTLOPENPRCQTY) > 0.009
+              THEN
+                 0
+              ELSE
+                 CASE WHEN ABS(PRECHGS.DELPRCQTY) > 0 THEN (NVL(ICHAPPAMT,0) * ABS(PRECHGS.DTLSOLDSALESQTY)) / ABS(PRECHGS.DELPRCQTY)  ELSE 0 END
+              END, 2) APPAMTPERBULKLOT
+      ,PRECHGS.EXCRECOVFROMPL
+      ,PRECHGS.CTYNO
+      ,PRECHGS.CHARGECLASS
+      ,3 DTLCHGSTYPNO
+      FROM (
+      SELECT DTLRECNO
+      , DTLDPRRECNO
+      , DTLLITITENO
+      , DTLSOLDSALESQTY
+      , DELPRCQTY
+      , DELPRICE.DELNETTVALUE
+      , ICHRECNO
+      , CASE WHEN NVL(DELQTY,0) > 0
+             THEN
+            (CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009)
+                 THEN NVL(ICHAPPAMT,0)
+                 ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2)
+                 END * NVL(CAST(DELPRCQTY AS FLOAT),0)) / CAST(DELQTY AS FLOAT)
+         ELSE 0
+         END RAWAPPAMT
+      , CASE  WHEN NVL(DELQTY,0) > 0
+              THEN (NVL(ICHAPPAMT,0) * NVL(CAST(DELPRCQTY AS FLOAT),0)) / CAST(DELQTY AS FLOAT)
+              ELSE 0
+              END ICHAPPAMT---Split price issue resolved
+      ,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
+      ,CHGTYP.CTYNO
+      ,CHGTYP.CHARGECLASS
+      ,DELPRICE.DPRRECNO
+      ,DTLSALESVALUE
+      ,NVL(DPRISPRICEADJONLY,0) DPRISPRICEADJONLY
+      ,DTLOPENPRCQTY
+      FROM ITECHG,EXPCHA, DELPRICE, DPRSTOLOTS, CHGTYP, DELDET
+      WHERE ICHISTRECNO IS NULL
+      AND ITECHG.EXCRECNO = EXPCHA.EXCCHAREC
+      AND ITECHG.CTYNO = CHGTYP.CTYNO
+      AND ITECHG.DELRECNO = DELDET.DELRECNO
+      AND DELPRICE.DPRDELRECNO  = DELDET.DELRECNO
+      AND NVL(DPRISPRICEADJONLY,0) = 0
+      AND NOT EXISTS (SELECT 1 FROM DELTOCDT WHERE CDTDPRRECNO = DELPRICE.DPRRECNO)
+                      AND DELPRICE.DPRRECNO = DPRRECNO_IN
+                      AND ABS(NVL(ICHAPPAMT,0)) > 0.009
+                      AND DPRSTOLOTS.DTLDPRRECNO = DELPRICE.DPRRECNO
+                      AND NOT EXISTS (SELECT 1
+                                      FROM DPRSTOLOTSCHGS CHECKIT
+                                      WHERE CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
+                                      AND CHECKIT.DTLCHGSICHNO = ITECHG.ICHRECNO)
+                      )PRECHGS;
+                      
+      CURSOR DOSALESROUNDINGCUR(DPRRECNO_IN INTEGER)
+      IS
+        SELECT ITECHG.ICHRECNO,ITECHG.ICHAPPAMT, MAX(DPRSTOLOTSCHGS.DTLCHGSRECNO) MAXDTLCHGSRECNO, NVL(ITECHG.ICHAPPAMT,0) - SUM(NVL(DPRSTOLOTSCHGS.DTLCHGSBASEAPP,0)) ROUNDDIFF
+        FROM ITECHG, DPRSTOLOTSCHGS , DPRSTOLOTS
+        WHERE DPRSTOLOTSCHGS.DTLCHGSICHNO = ITECHG.ICHRECNO
+        AND DPRSTOLOTSCHGS.DTLCHGSDTLRECNO = DPRSTOLOTS.DTLRECNO
+        AND DPRSTOLOTS.DTLDPRRECNO = DPRRECNO_IN
+        AND DPRSTOLOTSCHGS.DTLCHGSTYPNO <> 2 ---Sales costs ONLY - 1 = DprChgs, 2 = PurchaseChg, 3 = DelChgs
+        AND ABS(NVL(DPRSTOLOTS.DTLOPENPRCQTY,0)) < 0.009 --exclude openprice
+        GROUP BY ITECHG.ICHRECNO, ITECHG.ICHAPPAMT, DPRRECNO
+        HAVING ABS(NVL(ITECHG.ICHAPPAMT,0) - SUM(DPRSTOLOTSCHGS.DTLCHGSBASEAPP)) > 0.009;
+                 
   BEGIN
+    COUNTSI := 0;
     FOR DPRREC IN DPRRECNOS_IN.FIRST..DPRRECNOS_IN.LAST LOOP
     
-      FOR DPRTOLOTREC IN DPRSTOLOTSCHGS_CUR(DPRRECNOS_IN(DPRREC)) LOOP
-        DELETE FROM DPRSTOLOTSCHGS WHERE CURRENT OF DPRSTOLOTSCHGS_CUR;
+      DPRTOLOTSKEYDYNARR.DELETE;
+    
+      FOR DPRTOLOTCHGSREC IN DPRSTOLOTSCHGS_CUR(DPRRECNOS_IN(DPRREC)) LOOP
+        DELETE FROM DPRSTOLOTSCHGS WHERE DPRSTOLOTSCHGS.DTLCHGSRECNO = DPRTOLOTCHGSREC.DTLCHGSRECNO;
       END LOOP;
     
       FOR DPRTOLOTREC IN DPRTOLOTS_CUR(DPRRECNOS_IN(DPRREC)) LOOP
-        DELETE FROM DPRSTOLOTS WHERE CURRENT OF DPRTOLOTS_CUR;
+        DELETE FROM DPRSTOLOTS WHERE DPRSTOLOTS.DTLRECNO = DPRTOLOTREC.DTLRECNO;
       END LOOP;
+      
+      FOR BULKSALESREC IN BULKSALESCURSOR(DPRRECNOS_IN(DPRREC))
+      LOOP 
+        COUNTSI := COUNTSI + 1;
+              INSERT INTO DPRSTOLOTS(DTLDPRRECNO,
+                                    DTLLITITENO,
+                                    DTLDELRECNO,
+                                    DTLBULKSALESQTY,
+                                    DTLSOLDSALESQTY,
+                                    DTLSALESVALUE,
+                                    DTLOPENPRCQTY,
+                                    DTLDLVORDNO,
+                                    DTLSALOFFNO)
+                          VALUES  (BULKSALESREC.DPRRECNO,
+                                   BULKSALESREC.ISTLITNO,
+                                   BULKSALESREC.DPRDELRECNO,
+                                   BULKSALESREC.BULKQTY,
+                                   BULKSALESREC.SOLDQTY,
+                                   BULKSALESREC.NETTVALUE,
+                                   BULKSALESREC.OPENPRCQTY,
+                                   BULKSALESREC.DLVORDNO,
+                                   BULKSALESREC.DLVSALOFFNO)
+                                   RETURNING DTLRECNO INTO DPRTOLOTSKEY;
+        DPRTOLOTSKEYDYNARR(COUNTSI) := DPRTOLOTSKEY;
+      END LOOP;
+      
+      FOR PREPSALESREC IN PREPSALESCURSOR(DPRRECNOS_IN(DPRREC))
+      LOOP  
+        COUNTSI := COUNTSI + 1;
+              INSERT INTO DPRSTOLOTS(DTLDPRRECNO,
+                                    DTLLITITENO,
+                                    DTLDELRECNO,
+                                    DTLBULKSALESQTY,
+                                    DTLSOLDSALESQTY,
+                                    DTLSALESVALUE,
+                                    DTLOPENPRCQTY,
+                                    DTLDLVORDNO,
+                                    DTLSALOFFNO,
+                                    DTLWORECNO)
+                          VALUES  (PREPSALESREC.DPRRECNO,
+                                   PREPSALESREC.ISTLITNO,
+                                   PREPSALESREC.DPRDELRECNO,
+                                   PREPSALESREC.BULKQTY,
+                                   PREPSALESREC.SOLDQTY,
+                                   PREPSALESREC.NETTVALUE,
+                                   PREPSALESREC.OPENPRCQTY,
+                                   PREPSALESREC.DLVORDNO,
+                                   PREPSALESREC.DLVSALOFFNO,
+                                   PREPSALESREC.PALOUTWORECNO) 
+                          RETURNING DTLRECNO INTO DPRTOLOTSKEY;
+          DPRTOLOTSKEYDYNARR(COUNTSI) := DPRTOLOTSKEY;         
+      END LOOP;
+     
+      DPRTOLOTSIDX := DPRTOLOTSKEYDYNARR.FIRST;
+      
+      WHILE DPRTOLOTSIDX IS NOT NULL LOOP
 
-      INSERT INTO DPRSTOLOTS( DTLDPRRECNO,
-                              DTLLITITENO,
-                              DTLDELRECNO,
-                              DTLBULKSALESQTY,
-                              DTLSOLDSALESQTY,
-                              DTLSALESVALUE,
-                              DTLOPENPRCQTY,
-                              DTLDLVORDNO,
-                              DTLSALOFFNO)
-                              Select delprice.dprrecno
-                              ,Itesto.istlitno
-                              ,delprice.dprdelrecno
-                              ,SUM(Case When (Abs(NVL(delprice.delprice, 0)) > 0.009
-                                   OR Abs(NVL (delnettvalue, 0)) > 0.009
-                                   OR NVL(delprice.delfreeofchg, 0) = 1) --exclude openprice
-                   then
-                     NVL(deltoist.DISSTKQTY,0)
-                   else
-                     0
-                   end) bulkqty
+            UPDATE DPRSTOLOTS
+            SET ISTRANSDEL = 1
+            WHERE EXISTS(SELECT * FROM TRANSFEROWNER WHERE DTLDELRECNO = TROTRANDELRECNO AND ISTRANSHIPONLY = 0)
+            AND DTLRECNO = DPRTOLOTSKEYDYNARR(DPRTOLOTSIDX);
+            DPRTOLOTSIDX := DPRTOLOTSKEYDYNARR.NEXT(DPRTOLOTSIDX);
 
-                              ,SUM(Case When (Abs(NVL(delprice.delprice, 0)) > 0.009
-                                   OR Abs(NVL (delnettvalue, 0)) > 0.009
-                                   OR NVL(delprice.delfreeofchg, 0) = 1) --exclude openprice
-                   then
-                     NVL(deltoist.DISSTKQTY,0)
-                   else
-                    0
-                   end) Soldqty
-                              ,SUM(NVL(deltoist.DISNETTVALUE,0))
-                ,SUM(Case When (Abs(NVL(delprice.delprice, 0)) > 0.009
-                                   OR Abs(NVL (delnettvalue, 0)) > 0.009
-                                   OR NVL(delprice.delfreeofchg, 0) = 1) --exclude openprice
-                   then
-                    0
-                   else
-                    NVL(deltoist.DISSTKQTY,0)
-                   end) OpenPrcQty,
-                   delhed.DlvOrdNo,
-                   delhed.DlvSalOffNo
-                              From Deltoist,deldet, delprice, delhed, itesto, Purord
-                              Where delprice.dprrecno = Deltoist.disdprrecno
-                              and deltoist.DISISTRECNO = Itesto.ISTRECNO
-                              And delprice.dprdelrecno = deldet.delrecno
-                              and deldet.deldlvordno = delhed.dlvordno
-                              And Itesto.IstPoNo = PurOrd.PorNo
-                              AND (delhed.dlvrelinv <> 'Pik') -- Exclude updated pik status
-                              AND (delhed.dlvtransship IS NULL OR NVL (delhed.transferflg, 0) > 0)
-                              AND NVL (delhed.dlvsaltyp, 'S') <> 'R'
-                              AND delprice.DPRRECNO  = DPRRECNOS_IN(DPRREC)
-                              AND NOT exists ( Select 1
-                                               from DPRSTOLOTS checkIt
-                                               Where checkit.DTLDPRRECNO = Delprice.DprRecNo
-                                               and checkit.DTLLITITENO = Itesto.istlitno)
-                              group by  delprice.dprrecno, Itesto.istlitno, delprice.delprice, delnettvalue, delfreeofchg, dprdelrecno, delhed.DlvOrdNo, delhed.DlvSalOffNo;
-
-
-     Insert Into Dprstolots(Dtldprrecno,
-                            Dtllititeno,
-                            Dtldelrecno,
-                            Dtlbulksalesqty,
-                            Dtlsoldsalesqty,
-                            Dtlsalesvalue,
-                            Dtlopenprcqty,
-                            Dtldlvordno,
-                            Dtlsaloffno,
-                            Dtlworecno)
-                            SELECT
-                            delprice.dprrecno
-                           ,itesto.istlitno
-                           ,delprice.dprdelrecno
-                           ,SUM( CASE WHEN (Abs(NVL(delprice.delprice, 0)) > 0.009
-                                     OR Abs(NVL (delnettvalue, 0)) > 0.009
-                                     OR NVL(delprice.delfreeofchg, 0) = 1
-                                    ) --exclude openprice
-                                      THEN
-                                          CASE
-                                          WHEN NVL (prepalinout.iniswgtcnt, 0) = 0
-                                          THEN  Case
-                                                When NVL(PrePalInOut.PPPALOUTQTY,0) = 0
-                                                then 0
-                                                else (NVL(to_number(NVL(PrePalInOut.PPalinQtyDec,PrePalInOut.PPPALINQTY)) ,0) * NVL(PrePalInOutSales.DprQtyThis,0))
-                                                     / to_number(PrePalInOut.PPPALOUTQTY)
-                                                end
-                                          ELSE  Case When NVL(PrePalInOut.PPPALOUTQTY,0) = 0
-                                                then 0
-                                                else (NVL(to_number(NVL(PrePalInOut.PPalinQtyDec,PrePalInOut.PPPALINQTY)) ,0) * NVL(PrePalInOutSales.DprQtyThis,0))
-                                                     / to_number(PrePalInOut.PPPALOUTQTY)
-                                                end / Nvl(NULLIF(PrePalInOut.BoxWgtIn, 0.0), 1)
-                                          END
-                                      ELSE
-                                          0
-                                      END)
-                           ,SUM (CASE WHEN (Abs(NVL(delprice.delprice, 0)) > 0.009
-                                     OR Abs(NVL (delnettvalue, 0)) > 0.009
-                                     OR NVL(delprice.delfreeofchg, 0) = 1
-                                    ) --exclude openprice
-                                      THEN
-                                          NVL(DPRQTYTHIS,0)
-                                      ELSE
-                                          0
-                                      END)
-                           ,SUM(NVL(DPRBASEVALTHIS,0))
-                           ,SUM (CASE WHEN (Abs(NVL(delprice.delprice, 0)) > 0.009
-                                     OR Abs(NVL (delnettvalue, 0)) > 0.009
-                                     OR NVL(delprice.delfreeofchg, 0) = 1
-                                    ) --exclude openprice
-                                      THEN
-                                          0
-                                      ELSE
-                                          CASE
-                                          WHEN NVL (prepalinout.iniswgtcnt, 0) = 0
-                                          THEN  Case
-                                                When NVL(PrePalInOut.PPPALOUTQTY,0) = 0
-                                                then 0
-                                                else (NVL(to_number(NVL(PrePalInOut.PPalinQtyDec,PrePalInOut.PPPALINQTY)) ,0) * NVL(PrePalInOutSales.DprQtyThis,0))
-                                                     / to_number(PrePalInOut.PPPALOUTQTY)
-                                                end
-                                          ELSE  Case When NVL(PrePalInOut.PPPALOUTQTY,0) = 0
-                                                then 0
-                                                else (NVL(to_number(NVL(PrePalInOut.PPalinQtyDec,PrePalInOut.PPPALINQTY)) ,0) * NVL(PrePalInOutSales.DprQtyThis,0))
-                                                     / to_number(PrePalInOut.PPPALOUTQTY)
-                                                end / Nvl(NULLIF(PrePalInOut.BoxWgtIn, 0.0), 1)
-                                          END
-                                      END),
-                            delhed.DlvOrdNo,
-                            delhed.DlvSalOffNo,
-                            Prepalinout.PalOutWoRecNo
-                          FROM prepalinout, prepalinoutsales, delprice, deldet, delhed, itesto
-                          WHERE itesto.istrecno = prepalinout.palinbulkistrec
-                          AND prepalinout.prepalrecno = prepalinoutsales.prepalinoutrecno
-                          AND prepalinoutsales.delprcrecno = delprice.dprrecno
-                          AND delprice.dprdelrecno = deldet.delrecno
-                          AND deldet.deldlvordno = delhed.dlvordno
-                          AND (delhed.dlvrelinv <> 'Pik') -- Exclude updated pik status
-                          AND (delhed.dlvtransship IS NULL OR NVL (delhed.transferflg, 0) > 0)
-                          AND NVL (delhed.dlvsaltyp, 'S') <> 'R'
-                          AND Delprice.DprRecNo = DPRRECNOS_IN(DPRREC)
-                          And Not Exists (Select 1
-                                          from Dprstolots checkIt
-                                          Where checkit.Dtldprrecno = Delprice.DprRecNo
-                                          And Checkit.Dtllititeno = Itesto.Istlitno
-                                          And Checkit.Dtlworecno = Prepalinout.Paloutworecno)
-                          Group By Delprice.Dprrecno, Itesto.Istlitno, Delprice.Delprice, Delnettvalue, Delprice.Delfreeofchg
-											    , delprice.dprdelrecno, delhed.DlvOrdNo, delhed.DlvSalOffNo, Prepalinout.PalOutWoRecNo;
-
-        UPDATE DPRSTOLOTS
-        SET ISTRANSDEL = 1
-        WHERE EXISTS(SELECT * FROM TRANSFEROWNER WHERE DTLDELRECNO = TROTRANDELRECNO AND ISTRANSHIPONLY = 0)
-        AND DTLDPRRECNO = DPRRECNOS_IN(DPRREC);
-
-        Insert Into Dprstolotschgs(Dtlchgsichno
-                                  ,Dtlchgsdtlrecno
-                                  ,Dtlchgsrawapp
-                                  ,Dtlchgsbaseapp
-                                  ,Dtlchgsexclfrompl
-                                  ,Dtlchgsctyno
-                                  ,Dtlchgschargeclass
-                                  ,Dtlchgstypno)
-                                  (Select Ichrecno
-                                  ,Dtlrecno
-                                  ,Case When Abs(Dprstolots.Dtlopenprcqty) > 0.009
-                                        Then
-                                          0
-                                        else
-                                           Case When (Exctobaserate = 1.00 Or Exctobaserate < 0.000009)
-                                                Then Nvl(Ichappamt,0)
-                                                Else  Round(Nvl(Ichappamt,0) / Exctobaserate,2)
-                                                End
-                                        end Rawappamt
-                                  ,Case When Abs(Dprstolots.Dtlopenprcqty) > 0.009
-                                        Then
-                                          0
-                                        Else
-                                          Nvl(Ichappamt,0)
-                                        end Ichappamt
-                                  ,Nvl(Expcha.Excrecovfrompl, 0)
-                                  ,Chgtyp.Ctyno
-                                  ,Chgtyp.Chargeclass
-                                  ,1
-                                  From Itechg,Expcha,Itesto, Purord, Dprstolots, Chgtyp
-                                  Where Itechg.Dprrecno = Dprrecnos_In(Dprrec)
-                                  And Ichistrecno = Itesto.Istrecno
-                                  And Itechg.Excrecno = Expcha.Exccharec
-                                  And Itesto.Istpono = Purord.Porno
-                                  And Chgtyp.Ctyno = Itechg.Ctyno
-                                  And Abs(Nvl(Ichappamt,0)) > 0.009
-                                  And Dprstolots.Dtldprrecno = Itechg.Dprrecno
-                                  And Dprstolots.Dtllititeno = Itesto.Istlitno
-                                  And Dprstolots.Dtlworecno Is Null
-                                  And Not Exists (Select 1
-                                                  From Dprstolotschgs Checkit
-                                                  Where Checkit.Dtlchgsdtlrecno =  Dprstolots.Dtlrecno
-                                                  And Checkit.Dtlchgsichno = Itechg.Ichrecno));
-
-
-
-        INSERT INTO DPRSTOLOTSCHGS( DTLCHGSICHNO
-                                    ,DTLCHGSDTLRECNO
-                                    ,DTLCHGSRAWAPP
-                                    ,DTLCHGSBASEAPP
-                                    ,DTLCHGSEXCLFROMPL
-                                    ,DTLCHGSCTYNO
-                                    ,Dtlchgschargeclass
-                                    ,Dtlchgstypno)
-                                    Select IchRecNo
-                                    ,DTLRECNO
-                                    ,Sum(Nvl(RawAppAmtPerBulkLot,0))
-                                    ,Sum(Nvl(Appamtperbulklot,0))
-                                    ,NVL(EXCRECOVFROMPL,0)
-                                    ,CTYNO
-                                    ,Chargeclass
-                                    ,1
-                                    From(Select PreChgs.IchRecNo
-                                          ,PreChgs.LitIteNo
-                                          ,PreChgs.dprrecno
-                                          ,PreChgs.ICHAPPAMT
-                                          ,PreChgs.RawAppAmt
-                                          ,PreChgs.DPRQTYTHIS
-                                          ,PreChgs.disqty
-                                          ,DPRSTOLOTS.DTLRECNO
-                                          ,Round(
-                                            Case When Abs(Dprstolots.Dtlopenprcqty) > 0.009
-                                            Then
-                                              0
-                                            else
-                                              Case When NVL(DPRISPRICEADJONLY,0) = 1
-                                              then
-                                                Case When Abs(PreChgs.disnettvalue) > 0 then (NVL(IchAppAmt,0) * Abs(PreChgs.DPRBASEVALTHIS)) / Abs(PreChgs.disnettvalue)  else 0 end
-                                              else
-                                                Case When Abs(PreChgs.disqty) > 0 then (NVL(IchAppAmt,0) * Abs(PreChgs.DPRQTYTHIS)) / Abs(PreChgs.disqty)  else 0 end
-                                              End
-                                            End,2) Appamtperbulklot
-                                          ,Round(
-                                            Case When Abs(Dprstolots.Dtlopenprcqty) > 0.009
-                                            Then
-                                              0
-                                            else
-                                              Case When NVL(DPRISPRICEADJONLY,0) = 1
-                                              then
-                                                Case When Abs(PreChgs.disnettvalue) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DPRBASEVALTHIS)) / Abs(PreChgs.disnettvalue)  else 0 end
-                                              else
-                                                Case When Abs(PreChgs.disqty) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DPRQTYTHIS)) / Abs(PreChgs.disqty)  else 0 end
-                                              End
-                                            end,2)  RawAppAmtPerBulkLot
-                                          ,PreChgs.EXCRECOVFROMPL
-                                          ,PreChgs.CTYNO
-                                          ,PreChgs.CHARGECLASS
-                                          ,PreChgs.PalOutWoRecNo
-                                          From(
-                                                Select IchRecNo
-                                                ,bulkLotite.LitIteNo
-                                                ,Itechg.dprrecno
-                                                ,NVL(ICHAPPAMT,0) ICHAPPAMT
-                                                ,Case When (EXCTOBASERATE = 1.00 or EXCTOBASERATE < 0.000009) then NVL(ICHAPPAMT,0) else  Round(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) end RawAppAmt
-                                                ,NVL(PREPALINOUTSALES.DPRQTYTHIS,0) DPRQTYTHIS
-                                                ,NVL(PREPALINOUTSALES.DPRBASEVALTHIS,0) DPRBASEVALTHIS
-                                                ,NVL(deltoist.disqty, 0) disqty
-                                                ,NVL(deltoist.disnettvalue, 0) disnettvalue
-                                                ,NVL(EXPCHA.EXCRECOVFROMPL, 0) EXCRECOVFROMPL
-                                                ,CHGTYP.CTYNO
-                                                ,CHGTYP.CHARGECLASS
-                                                ,delprice.DPRISPRICEADJONLY
-                                                ,prepalinout.PalOutWoRecNo
-                                                from Itechg,ExpCha,Itesto prepIst, Lotite PrepLot, Prepalinout, PREPALINOUTSALES, Itesto BulkIst, Lotite bulkLotite, Deltoist,Delprice,CHGTYP
-                                                Where Itechg.IchIstRecNo = prepIst.IstRecNo
-                                                And Itechg.dprrecno = Dprrecnos_In(Dprrec)
-                                                And  Itechg.IchIstRecNo = DELTOIST.DISISTRECNO
-                                                And Itechg.dprrecno = Delprice.Dprrecno
-                                                And DELTOIST.DISDPRRECNO = Itechg.dprrecno
-                                                And Itechg.ExcRecNo = ExpCha.ExcChaRec
-                                                And Itechg.CtyNo = ChgTyp.CtyNo
-                                                And prepIst.IstLitNo = PrepLot.LITITENO
-                                                And PrepLot.LitWoRecNo = Prepalinout.PALOUTWORECNO
-                                                And Prepalinout.prepalrecno = prepalinoutsales.prepalinoutrecno
-                                                And prepalinoutsales.delprcrecno = Itechg.dprrecno
-                                                And prepalinout.palinbulkistrec = BulkIst.IstRecNo
-                                                And BulkIst.IstLitNo = bulkLotite.LitIteNo
-                                                And Abs(NVL(IchAppAmt,0)) > 0.009) Prechgs,DPRSTOLOTS
-                                          WHERE DPRSTOLOTS.DTLDPRRECNO = PreChgs.dprrecno
-                                          And DPRSTOLOTS.DTLLITITENO = PreChgs.LitIteNo
-                                          And DPRSTOLOTS.DTLWORECNO = PreChgs.PalOutWoRecNo
-                                          And NOT exists (Select 1
-                                                          from DPRSTOLOTSCHGS Checkit
-                                                          Where CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
-                                                          And Checkit.Dtlchgsichno = Prechgs.Ichrecno))
-                                    Group by IchRecNo,DTLRECNO,EXCRECOVFROMPL,CTYNO,Chargeclass;
-
-
-      INSERT INTO DPRSTOLOTSCHGS(
-                                   DTLCHGSICHNO
+      END LOOP;
+      
+      FOR BULKDPRCHGREC IN BULKDPRCHGS(DPRRECNOS_IN(DPRREC))
+      LOOP
+              INSERT INTO DPRSTOLOTSCHGS(DTLCHGSICHNO
                                   ,DTLCHGSDTLRECNO
                                   ,DTLCHGSRAWAPP
                                   ,DTLCHGSBASEAPP
                                   ,DTLCHGSEXCLFROMPL
                                   ,DTLCHGSCTYNO
-                                  ,Dtlchgschargeclass
-                                  ,Dtlchgstypno)
-                                  Select PreChgs.IchRecNo
-                                  ,PreChgs.DTLRECNO
-                                  , Round(
-                                          Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
-                                          Then
-                                             0
-                                          else
-                                             Case When NVL(DPRISPRICEADJONLY,0) = 1
-                                              Then
-                                                Case When Abs(PreChgs.delnettvalue) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DTLSALESVALUE)) / Abs(PreChgs.delnettvalue)  else 0 end
-                                              Else
-                                                Case When Abs(PreChgs.delprcqty) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DTLSOLDSALESQTY)) / Abs(PreChgs.delprcqty)  else 0 end
-                                              End
-                                          end,2) RawAppAmtPerBulkLot
-
-                                  , Round(Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
-                                          Then
-                                             0
-                                          Else
-                                            Case When NVL(DPRISPRICEADJONLY,0) = 1
-                                            Then
-                                              Case When Abs(PreChgs.delnettvalue) > 0 then (NVL(ICHAPPAMT,0) * Abs(PreChgs.DTLSALESVALUE)) / Abs(PreChgs.delnettvalue)  else 0 end
-                                            else
-                                              Case When Abs(PreChgs.delprcqty) > 0 then (NVL(ICHAPPAMT,0) * Abs(PreChgs.DTLSOLDSALESQTY)) / Abs(PreChgs.delprcqty)  else 0 end
-                                            End
-                                          end, 2) AppAmtPerBulkLot
-                                  ,PreChgs.EXCRECOVFROMPL
-                                  ,PreChgs.CTYNO
-                                  ,Prechgs.Chargeclass
-                                  ,1
-                                  From (
-                                  Select DTLRECNO
-                                  , DTLDPRRECNO
-                                  , DTLLITITENO
-                                  , DTLSOLDSALESQTY
-                                  , delprcqty
-                                  , delprice.delnettvalue
-                                  , IchRecNo
-                                  ,Case When (EXCTOBASERATE = 1.00 or EXCTOBASERATE < 0.000009) then NVL(ICHAPPAMT,0) else  Round(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) end RawAppAmt
-                                  ,ICHAPPAMT
-                                  ,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
-                                  ,CHGTYP.CTYNO
-                                  ,CHGTYP.CHARGECLASS
-                                  ,DELPRICE.Dprrecno
-                                  ,DTLSALESVALUE
-                                  ,Nvl(Dprispriceadjonly,0) Dprispriceadjonly
-                                  ,Dtlopenprcqty
-                                  from Itechg,ExpCha, DELPRICE, DPRSTOLOTS, CHGTYP
-                                  Where IchIstRecNo IS NULL
-                                  And Itechg.ExcRecNo = ExpCha.ExcChaRec
-                                  And Itechg.CtyNo = CHGTYP.CTYNO
-                                  And Itechg.Dprrecno = DELPRICE.Dprrecno
-                                  And Itechg.Dprrecno = DPRRECNOS_IN(DPRREC)
-                                  And Abs(NVL(IchAppAmt,0)) > 0.009
-                                  And DPRSTOLOTS.DTLDPRRECNO = itechg.dprrecno
-                                  AND NOT exists (Select 1
-                                                  from DPRSTOLOTSCHGS Checkit
-                                                  Where CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
-                                                  And CHECKIT.DTLCHGSICHNO = Itechg.IchRecNo)
-
-
-                                  )PreChgs;
-
-         INSERT INTO DPRSTOLOTSCHGS(
-                                    DTLCHGSICHNO
-                                   ,DTLCHGSDTLRECNO
-                                   ,DTLCHGSRAWAPP
-                                   ,DTLCHGSBASEAPP
-                                   ,DTLCHGSEXCLFROMPL
-                                   ,DTLCHGSCTYNO
-                                   ,Dtlchgschargeclass
-                                   ,Dtlchgstypno)
-                                   Select PreChgs.IchRecNo
-                                   ,PreChgs.DTLRECNO
-                                   , Round(
-                                           Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
-                                           Then
-                                              0
-                                           Else
-                                              Case When NVL(DPRISPRICEADJONLY,0) = 1
-                                               Then
-                                                 Case When Abs(PreChgs.delnettvalue) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DTLSALESVALUE)) / Abs(PreChgs.delnettvalue)  else 0 end
-                                               Else
-                                                 Case When Abs(PreChgs.delprcqty) > 0 then (NVL(RawAppAmt,0) * Abs(PreChgs.DTLSOLDSALESQTY)) / Abs(PreChgs.delprcqty)  else 0 end
-                                               End
-                                           end,2) RawAppAmtPerBulkLot
-
-                                   , Round(Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
-                                           Then
-                                              0
-                                           Else
-                                             Case When NVL(DPRISPRICEADJONLY,0) = 1
-                                             Then
-                                               Case When Abs(PreChgs.delnettvalue) > 0 then (NVL(ICHAPPAMT,0) * Abs(PreChgs.DTLSALESVALUE)) / Abs(PreChgs.delnettvalue)  else 0 end
-                                             else
-                                               Case When Abs(PreChgs.delprcqty) > 0 then (NVL(ICHAPPAMT,0) * Abs(PreChgs.DTLSOLDSALESQTY)) / Abs(PreChgs.delprcqty)  else 0 end
-                                             End
-                                           end, 2) AppAmtPerBulkLot
-                                   ,PreChgs.EXCRECOVFROMPL
-                                   ,PreChgs.CTYNO
-                                   ,Prechgs.Chargeclass
-                                   ,1
-                                   From (
-                                   Select DTLRECNO
-                                   , DTLDPRRECNO
-                                   , DTLLITITENO
-                                   , DTLSOLDSALESQTY
-                                   , delprcqty
-                                   , delprice.delnettvalue
-                                   , IchRecNo
-                                   ,Case When (DELTOBASERATE = 1.00 or DELTOBASERATE < 0.000009) then NVL(ICHAPPAMT,0) else  Round(NVL(ICHAPPAMT,0) / DELTOBASERATE,2) end RawAppAmt
-                                   ,ICHAPPAMT
-                                   ,0 EXCRECOVFROMPL
-                                   ,CHGTYP.CTYNO
-                                   ,CHGTYP.CHARGECLASS
-                                   ,DELPRICE.Dprrecno
-                                   ,DTLSALESVALUE
-                                   ,Nvl(Dprispriceadjonly,0) Dprispriceadjonly
-                                   ,Dtlopenprcqty
-                                   from Itechg, DELPRICE, DPRSTOLOTS, CHGTYP
-                                   Where IchIstRecNo IS NULL
-                                   And Itechg.ExcRecNo IS NULL
-                                   And Itechg.CtyNo = CHGTYP.CTYNO
-                                   And Itechg.Dprrecno = DELPRICE.Dprrecno
-                                   And Itechg.Dprrecno = DPRRECNOS_IN(DPRREC)
-                                   And Abs(NVL(IchAppAmt,0)) > 0.009
-                                   And DPRSTOLOTS.DTLDPRRECNO = itechg.dprrecno
-                                   AND NOT exists (Select 1
-                                                   from DPRSTOLOTSCHGS Checkit
-                                                   Where CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
-                                                   And CHECKIT.DTLCHGSICHNO = Itechg.IchRecNo)
-
-
-                                   )PreChgs;
-
-        INSERT INTO DPRSTOLOTSCHGS(
-                                   DTLCHGSICHNO
+                                  ,DTLCHGSCHARGECLASS
+                                  ,DTLCHGSTYPNO)
+                        VALUES ( BULKDPRCHGREC.ICHRECNO,
+                                 BULKDPRCHGREC.DTLRECNO,
+                                 BULKDPRCHGREC.RAWAPPAMT,
+                                 BULKDPRCHGREC.ICHAPPAMT,
+                                 BULKDPRCHGREC.EXCRECOVFROMPL,
+                                 BULKDPRCHGREC.CTYNO,
+                                 BULKDPRCHGREC.CHARGECLASS,
+                                 BULKDPRCHGREC.DTLCHGSTYPNO);
+         
+      END LOOP;
+      
+      FOR PREPDPRCHGREC IN PREPDPRCHGS(DPRRECNOS_IN(DPRREC))
+      LOOP
+              INSERT INTO DPRSTOLOTSCHGS(DTLCHGSICHNO
                                   ,DTLCHGSDTLRECNO
                                   ,DTLCHGSRAWAPP
                                   ,DTLCHGSBASEAPP
                                   ,DTLCHGSEXCLFROMPL
                                   ,DTLCHGSCTYNO
-                                  ,Dtlchgschargeclass
-                                  ,Dtlchgstypno)
-                                  Select PreChgs.IchRecNo
-                                  ,PreChgs.DTLRECNO
-                                  , Round(
-                                          Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
-                                          Then
-                                             0
-                                          Else
-                                             Case When Abs(Prechgs.Delprcqty) > 0 Then (Nvl(Rawappamt,0) * Abs(Prechgs.Dtlsoldsalesqty)) / Abs(Prechgs.Delprcqty)  Else 0 End
-                                          end,2) RawAppAmtPerBulkLot
-
-                                  , Round(Case When Abs(PreChgs.Dtlopenprcqty) > 0.009
-                                          Then
-                                             0
-                                          Else
-                                             Case When Abs(Prechgs.Delprcqty) > 0 Then (Nvl(Ichappamt,0) * Abs(Prechgs.Dtlsoldsalesqty)) / Abs(Prechgs.Delprcqty)  Else 0 End
-                                          end, 2) AppAmtPerBulkLot
-                                  ,PreChgs.EXCRECOVFROMPL
-                                  ,PreChgs.CTYNO
-                                  ,Prechgs.Chargeclass
-                                  ,3
-                                  From (
-                                  Select DTLRECNO
-                                  , DTLDPRRECNO
-                                  , DTLLITITENO
-                                  , DTLSOLDSALESQTY
-                                  , delprcqty
-                                  , delprice.delnettvalue
-                                  , IchRecNo
-
-                                  , Case When Nvl(DelQty,0) > 0
-                                         then
-                                        (Case When (EXCTOBASERATE = 1.00 or EXCTOBASERATE < 0.000009)
-                                             Then Nvl(Ichappamt,0)
-                                             Else  Round(Nvl(Ichappamt,0) / Exctobaserate,2)
-                                             end * NVL(Cast(delprcqty as Float),0)) / Cast(DelQty as Float)
-                                     else 0
-                                     End Rawappamt
-                                  , Case  When NVl(DelQty,0) > 0
-                                          then (NVL(ICHAPPAMT,0) * Nvl(Cast(delprcqty as Float),0)) / Cast(DelQty as Float)
-                                          else 0
-                                          end ICHAPPAMT---Split price issue resolved
-                                  ,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
-                                  ,CHGTYP.CTYNO
-                                  ,CHGTYP.CHARGECLASS
-                                  ,DELPRICE.Dprrecno
-                                  ,DTLSALESVALUE
-                                  ,Nvl(Dprispriceadjonly,0) Dprispriceadjonly
-                                  ,Dtlopenprcqty
-                                  from Itechg,ExpCha, DELPRICE, DPRSTOLOTS, CHGTYP, DELDET
-                                  Where IchIstRecNo IS NULL
-                                  And Itechg.ExcRecNo = ExpCha.ExcChaRec
-                                  And Itechg.CtyNo = CHGTYP.CTYNO
-                                  And Itechg.DelRecNo = Deldet.DelRecNo
-								  And DELPRICE.DprDelrecno  = DelDet.Delrecno
-								  And NVL(DPRISPRICEADJONLY,0) = 0
-								  And not exists (Select 1 from deltocdt where cdtDprrecno = DELPRICE.Dprrecno)
-                                  And DELPRICE.Dprrecno = DPRRECNOS_IN(DPRREC)
-                                  And Abs(NVL(IchAppAmt,0)) > 0.009
-                                  And DPRSTOLOTS.DTLDPRRECNO = DELPRICE.dprrecno
-                                  AND NOT exists (Select 1
-                                                  from DPRSTOLOTSCHGS Checkit
-                                                  Where CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
-                                                  And CHECKIT.DTLCHGSICHNO = Itechg.IchRecNo)
-
-
-                                  )PreChgs;
-
-
-
-
-
-
-                      UPDATE DPRSTOLOTSCHGS
-                      SET DTLCHGSBASEAPP = NVL(DTLCHGSBASEAPP,0) + (Select NVL(Itechg.IchAppAmt,0) - SUM(NVL(checkit.DTLCHGSBASEAPP,0))
-                                                                    FROM Itechg, DPRSTOLOTSCHGS checkit
-                                                                    Where checkit.DTLCHGSICHNO = ITECHG.ICHRECNO
-                                                                    And DPRSTOLOTSCHGS.DTLCHGSICHNO = checkit.DTLCHGSICHNO
-                                                                    group by Itechg.ICHRECNO, Itechg.ICHAPPAMT
-                                                                    having abs(NVL(Itechg.ICHAPPAMT,0) - SUM(checkit.DTLCHGSBASEAPP)) > 0.009)
-                      WHERE EXISTS (Select 1
-                                    FROM Itechg, DPRSTOLOTSCHGS checkit
-                                    Where checkit.DTLCHGSICHNO = ITECHG.ICHRECNO
-                                    And DPRSTOLOTSCHGS.DTLCHGSICHNO = checkit.DTLCHGSICHNO
-                                    group by Itechg.ICHRECNO, Itechg.ICHAPPAMT
-                                    having abs(NVL(Itechg.ICHAPPAMT,0) - SUM(checkit.DTLCHGSBASEAPP)) > 0.009)
-                      AND DPRSTOLOTSCHGS.DTLCHGSRECNO =  (SELECT Max(Checkit.DTLCHGSRECNO)
-                                                          FROM DPRSTOLOTSCHGS Checkit
-                                                          WHERE Checkit.DTLCHGSICHNO = DPRSTOLOTSCHGS.DTLCHGSICHNO)
-                      AND DTLCHGSDTLRECNO IN (SELECT DTLRECNO
-                                              FROM DPRSTOLOTS
-                                              Where Dprstolots.Dtldprrecno = Dprrecnos_In(Dprrec)
-                                              And Abs(Nvl(Dprstolots.Dtlopenprcqty,0)) < 0.009);
-
+                                  ,DTLCHGSCHARGECLASS
+                                  ,DTLCHGSTYPNO)
+                        VALUES ( PREPDPRCHGREC.ICHRECNO,
+                                 PREPDPRCHGREC.DTLRECNO,
+                                 PREPDPRCHGREC.RAWAPPAMT,
+                                 PREPDPRCHGREC.ICHAPPAMT,
+                                 PREPDPRCHGREC.EXCRECOVFROMPL,
+                                 PREPDPRCHGREC.CTYNO,
+                                 PREPDPRCHGREC.CHARGECLASS,
+                                 PREPDPRCHGREC.DTLCHGSTYPNO);
+         
+      END LOOP;
+      
+      FOR PREPCHGNULLISTREC IN PREPCHGNULLISTCURSOR(DPRRECNOS_IN(DPRREC))
+      LOOP
+                    INSERT INTO DPRSTOLOTSCHGS(DTLCHGSICHNO
+                                  ,DTLCHGSDTLRECNO
+                                  ,DTLCHGSRAWAPP
+                                  ,DTLCHGSBASEAPP
+                                  ,DTLCHGSEXCLFROMPL
+                                  ,DTLCHGSCTYNO
+                                  ,DTLCHGSCHARGECLASS
+                                  ,DTLCHGSTYPNO)     
+                    VALUES (       PREPCHGNULLISTREC.ICHRECNO,
+                                   PREPCHGNULLISTREC.DTLRECNO,
+                                   PREPCHGNULLISTREC.RAWAPPAMTPERBULKLOT,
+                                   PREPCHGNULLISTREC.APPAMTPERBULKLOT,
+                                   PREPCHGNULLISTREC.EXCRECOVFROMPL,
+                                   PREPCHGNULLISTREC.CTYNO,
+                                   PREPCHGNULLISTREC.CHARGECLASS,
+                                   PREPCHGNULLISTREC.DTLCHGSTYPNO); 
+      END LOOP;
+      
+      FOR PREPSALESCHGNOEXPREC IN PREPSALESCHGNOEXPCUR(DPRRECNOS_IN(DPRREC))
+      LOOP
+              INSERT INTO DPRSTOLOTSCHGS(DTLCHGSICHNO
+                                        ,DTLCHGSDTLRECNO
+                                        ,DTLCHGSRAWAPP
+                                        ,DTLCHGSBASEAPP
+                                        ,DTLCHGSEXCLFROMPL
+                                        ,DTLCHGSCTYNO
+                                        ,DTLCHGSCHARGECLASS
+                                        ,DTLCHGSTYPNO)     
+              VALUES(                  PREPSALESCHGNOEXPREC.ICHRECNO,
+                                       PREPSALESCHGNOEXPREC.DTLRECNO,
+                                       PREPSALESCHGNOEXPREC.RAWAPPAMTPERBULKLOT,
+                                       PREPSALESCHGNOEXPREC.APPAMTPERBULKLOT,
+                                       PREPSALESCHGNOEXPREC.EXCRECOVFROMPL,
+                                       PREPSALESCHGNOEXPREC.CTYNO,
+                                       PREPSALESCHGNOEXPREC.CHARGECLASS,
+                                       PREPSALESCHGNOEXPREC.DTLCHGSTYPNO);      
+      END LOOP;
+     
+      FOR SALESRTECHGSREC IN SALESRTECHGS(DPRRECNOS_IN(DPRREC))
+      LOOP
+                    INSERT INTO DPRSTOLOTSCHGS(DTLCHGSICHNO
+                                        ,DTLCHGSDTLRECNO
+                                        ,DTLCHGSRAWAPP
+                                        ,DTLCHGSBASEAPP
+                                        ,DTLCHGSEXCLFROMPL
+                                        ,DTLCHGSCTYNO
+                                        ,DTLCHGSCHARGECLASS
+                                        ,DTLCHGSTYPNO)     
+                    VALUES(            SALESRTECHGSREC.ICHRECNO,
+                                       SALESRTECHGSREC.DTLRECNO,
+                                       SALESRTECHGSREC.RAWAPPAMTPERBULKLOT,
+                                       SALESRTECHGSREC.APPAMTPERBULKLOT,
+                                       SALESRTECHGSREC.EXCRECOVFROMPL,
+                                       SALESRTECHGSREC.CTYNO,
+                                       SALESRTECHGSREC.CHARGECLASS,
+                                       SALESRTECHGSREC.DTLCHGSTYPNO);   
+      
+      END LOOP;
+      
+      FOR DOSALESROUNDINGREC IN DOSALESROUNDINGCUR(DPRRECNOS_IN(DPRREC))
+      LOOP
+      
+          UPDATE DPRSTOLOTSCHGS
+          SET DTLCHGSBASEAPP = NVL(DTLCHGSBASEAPP,0)  +  DOSALESROUNDINGREC.ROUNDDIFF
+          WHERE DTLCHGSRECNO =  DOSALESROUNDINGREC.MAXDTLCHGSRECNO;
+      
+      END LOOP;
+      
       COMMIT;
     END LOOP;
   EXCEPTION
@@ -608,82 +717,174 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
   PROCEDURE GETLOTS(LITITENO_IN LOTITE.LITITENO%TYPE)
   IS
     PARAMETER_LIST      FT_PK_STRING_UTILS.TYPE_STRING_TOKENS;
+    
+    CURSOR GETBALSTOLOTSCHGSTODEL(LITITENO_IN INTEGER)
+    IS
+      SELECT BALTOLOTSCHGS.BTLCHGSRECNO 
+      FROM BALTOLOTSCHGS, BALTOLOTS
+      WHERE BALTOLOTSCHGS.BTLRECNO = BALTOLOTS.BTLRECNO
+      AND BALTOLOTS.BTLLITITENO = LITITENO_IN;
+      
+    CURSOR GETBALSTOLOTSTODEL(LITITENO_IN INTEGER)
+    IS
+      SELECT BALTOLOTS.BTLRECNO FROM BALTOLOTS WHERE BALTOLOTS.BTLLITITENO = LITITENO_IN;
+         
+    CURSOR GETBALSTOLOTSCUR(LITITETO_IN INTEGER)
+    IS
+      SELECT LITITENO
+      ,PORSALOFF
+      ,CASE WHEN LITRCVCOMPLETE = 'Y' THEN NVL(LITQTYRCV,0) ELSE NVL(LITORGEXP,0) END RCVQTY
+      FROM LOTITE, PURORD
+      WHERE LITPORREC = PORRECNO
+      AND  LOTITE.LITITENO = LITITENO_IN;
+      
+    CURSOR GETTRANSFERQTYCUR(LITITENO_IN INTEGER)
+    IS
+      SELECT BTLRECNO, SUM(NVL(TRANSFERINQTY,0)) TRANSFERQTY
+      FROM ITESTO, BALTOLOTS
+      WHERE TRNCALCMETH = 0
+      AND BTLLITITENO = ISTLITNO
+      AND BTLSALOFFNO = TRNSALOFFNO
+      AND ITESTO.ISTLITNO = LITITENO_IN
+      GROUP BY BTLRECNO;
+      
+    GETTRANSFERQTYREC GETTRANSFERQTYCUR%ROWTYPE;
+      
+    CURSOR GETTRANSBALSTOLOTSCUR(LITITENO_IN INTEGER)
+    IS
+      SELECT ISTLITNO
+      ,TRNSALOFFNO
+      ,SUM(NVL(TRANSFERINQTY,0)) TRANSFERQTY
+      FROM ITESTO
+      WHERE TRNCALCMETH = 0
+      AND ITESTO.ISTLITNO = LITITENO_IN
+      AND TRNSALOFFNO IS NOT NULL
+      AND NOT EXISTS (SELECT 1
+                      FROM BALTOLOTS CHECKIT
+                      WHERE CHECKIT.BTLLITITENO = ITESTO.ISTLITNO
+                      AND CHECKIT.BTLSALOFFNO = ITESTO.TRNSALOFFNO)
+      GROUP BY ISTLITNO, TRNSALOFFNO;
+      
+    CURSOR GETSALEQTYFORBALSCUR(LITITENO_IN INTEGER)
+    IS
+      SELECT BTLRECNO, SUM(NVL(DPRSTOLOTS.DTLBULKSALESQTY,0)) SALESQTY
+      FROM DPRSTOLOTS, BALTOLOTS 
+      WHERE DPRSTOLOTS.DTLLITITENO = BALTOLOTS.BTLLITITENO 
+      AND DPRSTOLOTS.DTLSALOFFNO = BALTOLOTS.BTLSALOFFNO
+      AND BALTOLOTS.BTLLITITENO = LITITENO_IN
+      GROUP BY BTLRECNO;
+      
+    GETSALEQTYFORBALSREC GETSALEQTYFORBALSCUR%ROWTYPE;
+    
+    CURSOR BALSTOLOTSCHGSCUR(LITITENO_IN INTEGER)
+    IS
+      SELECT  BALTOLOTS.BTLRECNO,
+          ITECHG.ICHRECNO,
+          CHGTYP.CTYNO,
+          CHGTYP.CHARGECLASS,
+          NVL(EXPCHA.EXCRECOVFROMPL, 0) EXCRECOVFROMPL,
+          NVL(ITECHG.ICHRAWAPPAMT, 0.0) ICHRAWAPPAMT,
+          NVL(ITECHG.ICHAPPAMT, 0.0) ICHAPPAMT,
+          NVL(ITECHG.ICHRAWAUTHAMM, 0.0) ICHRAWAUTHAMM,
+          NVL(ITECHG.ICHAUTHAMM, 0.0) ICHAUTHAMM
+      FROM ITECHG
+      INNER JOIN CHGTYP
+        ON CHGTYP.CTYNO = ITECHG.CTYNO
+      INNER JOIN EXPCHA
+        ON EXPCHA.EXCCHAREC = ITECHG.EXCRECNO
+      INNER JOIN BALTOLOTS
+        ON BALTOLOTS.BTLLITITENO = ITECHG.LITRECNO AND BALTOLOTS.BTLSALOFFNO = EXPCHA.EXCSALOFF
+      WHERE ITECHG.LITRECNO = LITITENO_IN;
+
+    
+    
+    
   BEGIN
     IF LITITENO_IN IS NULL THEN
       PARAMETER_LIST('#PARAMNAME') := 'LITITENO_IN';
       PARAMETER_LIST('#PARAMVALUE') := TO_CHAR(LITITENO_IN);
       FT_PK_ERRORS.RAISE_ERROR(FT_PK_ERRNUMS.FT_PARAMETER, PARAMETER_LIST);
     END IF;
+        
+    FOR BALTOLOTSCHGSREC IN GETBALSTOLOTSCHGSTODEL(LITITENO_IN)  
+    LOOP
+      DELETE FROM BALTOLOTSCHGS
+      WHERE BALTOLOTSCHGS.BTLCHGSRECNO = BALTOLOTSCHGSREC.BTLCHGSRECNO;   
+    END LOOP;
+      
+    FOR BALTOLOTSCHGSREC IN GETBALSTOLOTSTODEL(LITITENO_IN)
+    LOOP
+      DELETE FROM BALTOLOTS
+      WHERE BALTOLOTS.BTLRECNO = BALTOLOTSCHGSREC.BTLRECNO;    
+    END LOOP;
 
-    DELETE FROM BALTOLOTSCHGS
-    WHERE BALTOLOTSCHGS.BTLRECNO IN(SELECT BALTOLOTS.BTLRECNO FROM BALTOLOTS WHERE BALTOLOTS.BTLLITITENO = LITITENO_IN);
+    FOR GETBALSTOLOTSREC IN GETBALSTOLOTSCUR(LITITENO_IN)
+    LOOP   
+      INSERT INTO BALTOLOTS(BTLLITITENO
+                            ,BTLSALOFFNO
+                            ,RCVQTY)
+                    VALUES (GETBALSTOLOTSREC.LITITENO
+                            ,GETBALSTOLOTSREC.PORSALOFF
+                            ,GETBALSTOLOTSREC.RCVQTY);
+    END LOOP;
+    
+    OPEN GETTRANSFERQTYCUR(LITITENO_IN);
+    LOOP
+     
+      FETCH GETTRANSFERQTYCUR INTO GETTRANSFERQTYREC;	
+      
+      UPDATE BALTOLOTS
+      SET RCVQTY = NVL(RCVQTY,0) + GETTRANSFERQTYREC.TRANSFERQTY
+      WHERE BALTOLOTS.BTLRECNO = GETTRANSFERQTYREC.BTLRECNO;	
+      
+      EXIT WHEN GETTRANSFERQTYCUR%NOTFOUND;
+    
+    END LOOP;
+    CLOSE GETTRANSFERQTYCUR;
+        
+    FOR GETTRANSBALSTOLOTSREC IN GETTRANSBALSTOLOTSCUR(LITITENO_IN)
+    LOOP  
+      INSERT INTO BALTOLOTS(BTLLITITENO
+                           ,BTLSALOFFNO
+                           ,RCVQTY)
+                  VALUES  ( GETTRANSBALSTOLOTSREC.ISTLITNO
+                           ,GETTRANSBALSTOLOTSREC.TRNSALOFFNO
+                           ,GETTRANSBALSTOLOTSREC.TRANSFERQTY);
+    
+    END LOOP;
 
-    DELETE FROM BALTOLOTS
-    WHERE BALTOLOTS.BTLLITITENO = LITITENO_IN;
-
-    INSERT INTO BALTOLOTS(BTLLITITENO
-                          ,BTLSALOFFNO
-                          ,RCVQTY)
-                          SELECT LITITENO
-                          ,PORSALOFF
-                          ,CASE WHEN LITRCVCOMPLETE = 'Y' THEN NVL(LITQTYRCV,0) ELSE NVL(LITORGEXP,0) END RCVQTY
-                          FROM LOTITE, PURORD
-                          WHERE LITPORREC = PORRECNO
-                          AND  LOTITE.LITITENO = LITITENO_IN;
-
-    UPDATE BALTOLOTS
-    SET RCVQTY = NVL(RCVQTY,0) + (SELECT SUM(NVL(TRANSFERINQTY,0))
-                                  FROM ITESTO
-                                  WHERE TRNCALCMETH = 0
-                                  AND BTLLITITENO = ISTLITNO
-                                  AND BTLSALOFFNO = TRNSALOFFNO
-                                  AND ITESTO.ISTLITNO = LITITENO_IN)
-    WHERE EXISTS (SELECT 1
-                    FROM ITESTO
-                    WHERE TRNCALCMETH = 0
-                    AND BTLLITITENO = ISTLITNO
-                    AND BTLSALOFFNO = TRNSALOFFNO
-                    AND ITESTO.ISTLITNO = LITITENO_IN);
-
-    INSERT INTO BALTOLOTS(BTLLITITENO
-                          ,BTLSALOFFNO
-                          ,RCVQTY)
-                          SELECT ISTLITNO
-                          ,TRNSALOFFNO
-                          ,SUM(NVL(TRANSFERINQTY,0))
-                          FROM ITESTO
-                          WHERE TRNCALCMETH = 0
-                          AND ITESTO.ISTLITNO = LITITENO_IN
-                          And TRNSALOFFNO IS not null
-                          AND NOT EXISTS (SELECT 1
-                                          FROM BALTOLOTS CHECKIT
-                                          WHERE CHECKIT.BTLLITITENO = ITESTO.ISTLITNO
-                                          AND CHECKIT.BTLSALOFFNO = ITESTO.TRNSALOFFNO)
-                          GROUP BY ISTLITNO, TRNSALOFFNO;
-
-    UPDATE BALTOLOTS
-    SET ONSTOCKQTY = RCVQTY - NVL((SELECT SUM(DPRSTOLOTS.DTLBULKSALESQTY) FROM DPRSTOLOTS WHERE DPRSTOLOTS.DTLLITITENO = BALTOLOTS.BTLLITITENO AND DPRSTOLOTS.DTLSALOFFNO = BALTOLOTS.BTLSALOFFNO), 0)
-    WHERE BTLLITITENO = LITITENO_IN;
-
-    INSERT INTO BALTOLOTSCHGS(BTLRECNO, ICHRECNO, CTYNO, CHARGECLASS, EXCLFROMPL, RAWAPP, BASEAPP, RAWAUTH, BASEAUTH)
-    SELECT  BALTOLOTS.BTLRECNO,
-            ITECHG.ICHRECNO,
-            CHGTYP.CTYNO,
-            CHGTYP.CHARGECLASS,
-            NVL(EXPCHA.EXCRECOVFROMPL, 0),
-            NVL(ITECHG.ICHRAWAPPAMT, 0.0),
-            NVL(ITECHG.ICHAPPAMT, 0.0),
-            NVL(ITECHG.ICHRAWAUTHAMM, 0.0),
-            NVL(ITECHG.ICHAUTHAMM, 0.0)
-    FROM ITECHG
-    INNER JOIN CHGTYP
-      ON CHGTYP.CTYNO = ITECHG.CTYNO
-    INNER JOIN EXPCHA
-      ON EXPCHA.EXCCHAREC = ITECHG.EXCRECNO
-    INNER JOIN BALTOLOTS
-      ON BALTOLOTS.BTLLITITENO = ITECHG.LITRECNO AND BALTOLOTS.BTLSALOFFNO = EXPCHA.EXCSALOFF
-    WHERE ITECHG.LITRECNO = LITITENO_IN;
-
+    OPEN GETSALEQTYFORBALSCUR(LITITENO_IN);
+    LOOP
+        FETCH GETSALEQTYFORBALSCUR INTO GETSALEQTYFORBALSREC;       
+        UPDATE BALTOLOTS
+        SET ONSTOCKQTY = RCVQTY - GETSALEQTYFORBALSREC.SALESQTY
+        WHERE BALTOLOTS.BTLRECNO = GETSALEQTYFORBALSREC.BTLRECNO;
+        EXIT WHEN GETSALEQTYFORBALSCUR%NOTFOUND;
+      END LOOP;
+    CLOSE GETSALEQTYFORBALSCUR;
+         
+    FOR  BALSTOLOTSCHGSREC IN BALSTOLOTSCHGSCUR(LITITENO_IN)  
+    LOOP
+      INSERT INTO BALTOLOTSCHGS(BTLRECNO
+                              , ICHRECNO
+                              , CTYNO
+                              , CHARGECLASS
+                              , EXCLFROMPL
+                              , RAWAPP
+                              , BASEAPP
+                              , RAWAUTH
+                              , BASEAUTH)
+                        VALUES( BALSTOLOTSCHGSREC.BTLRECNO,
+                                BALSTOLOTSCHGSREC.ICHRECNO,
+                                BALSTOLOTSCHGSREC.CTYNO,
+                                BALSTOLOTSCHGSREC.CHARGECLASS,
+                                BALSTOLOTSCHGSREC.EXCRECOVFROMPL,
+                                BALSTOLOTSCHGSREC.ICHRAWAPPAMT,
+                                BALSTOLOTSCHGSREC.ICHAPPAMT,
+                                BALSTOLOTSCHGSREC.ICHRAWAUTHAMM,
+                                BALSTOLOTSCHGSREC.ICHAUTHAMM);
+          
+      END LOOP;
     COMMIT;
   EXCEPTION
     WHEN OTHERS THEN
@@ -716,6 +917,59 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
 		AND (ABS(NVL(BASEDIFF,0)) > 0.009 OR  ABS(NVL(RAWDIFF,0)) > 0.009);
 
     PARAMETER_LIST      FT_PK_STRING_UTILS.TYPE_STRING_TOKENS;
+    
+    CURSOR DPRSTOLOTSPURCHGSDEL_CUR(LITITENO_IN INTEGER) 
+    IS
+      SELECT DPRSTOLOTSCHGS.DTLCHGSRECNO 
+      FROM DPRSTOLOTSCHGS, DPRSTOLOTS
+      WHERE DPRSTOLOTSCHGS.DTLCHGSDTLRECNO = DPRSTOLOTS.DTLRECNO 
+      AND DPRSTOLOTS.DTLLITITENO = LITITENO_IN
+      AND DPRSTOLOTSCHGS.DTLCHGSTYPNO = 2 ---This cursor is used to delete the Purchase charges from DPRSTOLOTSCHGS for the whole lot.
+      ORDER BY DTLCHGSRECNO; 
+            
+    CURSOR DPRSTOLOTSPURCHG_CUR(LITITENO_IN INTEGER)
+    IS
+      SELECT
+       ICHRECNO
+      ,DTLRECNO
+      ,ROUND(CASE WHEN TOTQTY > 0 THEN (RAWAPPAMT * DTLBULKSALESQTY) /  TOTQTY ELSE 0 END, 2) LOTTODPRCHGAUTHAPPRAW
+      ,ROUND( CASE WHEN TOTQTY > 0 THEN (ICHAPPAMT * DTLBULKSALESQTY) /  TOTQTY ELSE 0 END, 2) LOTTODPRCHGAPPBASE
+      ,EXCRECOVFROMPL
+      ,CTYNO
+      ,CHARGECLASS
+      ,2 TYPENO
+      FROM (
+      SELECT ICHRECNO
+      , DPRSTOLOTS.DTLRECNO
+      ,DPRSTOLOTS.DTLDPRRECNO
+      ,BALTOLOTS.BTLLITITENO
+      ,BALTOLOTS.RCVQTY TOTQTY
+      ,NVL(DTLBULKSALESQTY,0) DTLBULKSALESQTY
+      ,NVL(ICHAPPAMT,0) ICHAPPAMT
+      ,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END RAWAPPAMT
+      ,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
+      ,CHGTYP.CHARGECLASS
+      ,CHGTYP.CTYNO
+      FROM ITECHG, BALTOLOTS,DPRSTOLOTS, EXPCHA, CHGTYP
+      WHERE ITECHG.LITRECNO= DPRSTOLOTS.DTLLITITENO
+      AND EXCRECNO = EXPCHA.EXCCHAREC
+      AND BALTOLOTS.BTLSALOFFNO = DPRSTOLOTS.DTLSALOFFNO
+      AND BALTOLOTS.BTLLITITENO = ITECHG.LITRECNO
+      AND EXPCHA.EXCSALOFF = DPRSTOLOTS.DTLSALOFFNO
+      AND ITECHG.CTYNO = CHGTYP.CTYNO
+      AND ITECHG.LITRECNO = LITITENO_IN
+      AND NOT EXISTS (SELECT 1
+                      FROM DPRSTOLOTSCHGS CHECKIT
+                      WHERE CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
+                      AND CHECKIT.DTLCHGSICHNO = ITECHG.ICHRECNO));
+    
+  CURSOR GETBALTOLOTSPURCHG_CUR(LITITENO_IN INTEGER)
+  IS 
+      SELECT BTLCHGSRECNO 
+      FROM BALTOLOTSCHGS, BALTOLOTS
+      WHERE BALTOLOTSCHGS.BTLRECNO = BALTOLOTS.BTLRECNO
+      AND BALTOLOTS.BTLLITITENO = LITITENO_IN;
+      
   BEGIN
     IF LITITENO_IN IS NULL THEN
       PARAMETER_LIST('#PARAMNAME') := 'LITITENO_IN';
@@ -723,67 +977,50 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
       FT_PK_ERRORS.RAISE_ERROR(FT_PK_ERRNUMS.FT_PARAMETER, PARAMETER_LIST);
     END IF;
 
+  FOR DPRSTOLOTSPURCHGSDELREC IN DPRSTOLOTSPURCHGSDEL_CUR(LITITENO_IN)
+  LOOP
     DELETE FROM DPRSTOLOTSCHGS
-    WHERE DPRSTOLOTSCHGS.DTLCHGSDTLRECNO IN(SELECT DPRSTOLOTS.DTLRECNO FROM DPRSTOLOTS WHERE DPRSTOLOTS.DTLLITITENO = LITITENO_IN)
-	  AND DPRSTOLOTSCHGS.DTLCHGSTYPNO = 2;
+    WHERE DPRSTOLOTSCHGS.DTLCHGSRECNO =  DPRSTOLOTSPURCHGSDELREC.DTLCHGSRECNO;
+    
+  END LOOP;
 
-	INSERT INTO DPRSTOLOTSCHGS(
-            DTLCHGSICHNO
-           ,DTLCHGSDTLRECNO
-           ,DTLCHGSRAWAPP
-           ,DTLCHGSBASEAPP
-           ,DTLCHGSEXCLFROMPL
-           ,DTLCHGSCTYNO
-           ,DTLCHGSCHARGECLASS
-		   ,DTLCHGSTYPNO)
-		   SELECT
-			 ICHRECNO
-			,DTLRECNO
-			,ROUND(CASE WHEN TOTQTY > 0 THEN (RAWAPPAMT * DTLBULKSALESQTY) /  TOTQTY ELSE 0 END, 2) LOTTODPRCHGAUTHAPPRAW
-			,ROUND( CASE WHEN TOTQTY > 0 THEN (ICHAPPAMT * DTLBULKSALESQTY) /  TOTQTY ELSE 0 END, 2) LOTTODPRCHGAPPBASE
-			,EXCRECOVFROMPL
-			,CTYNO
-			,CHARGECLASS
-			,2
-			FROM (
-			SELECT ICHRECNO
-			, DPRSTOLOTS.DTLRECNO
-			,DPRSTOLOTS.DTLDPRRECNO
-			,BALTOLOTS.BTLLITITENO
-			,BALTOLOTS.RCVQTY TOTQTY
-			,NVL(DTLBULKSALESQTY,0) DTLBULKSALESQTY
-			,NVL(ICHAPPAMT,0) ICHAPPAMT
-			,CASE WHEN (EXCTOBASERATE = 1.00 OR EXCTOBASERATE < 0.000009) THEN NVL(ICHAPPAMT,0) ELSE  ROUND(NVL(ICHAPPAMT,0) / EXCTOBASERATE,2) END RAWAPPAMT
-			,NVL(EXPCHA.EXCRECOVFROMPL,0) EXCRECOVFROMPL
-			,CHGTYP.CHARGECLASS
-			,CHGTYP.CTYNO
-			FROM ITECHG, BALTOLOTS,DPRSTOLOTS, EXPCHA, CHGTYP
-			WHERE ITECHG.LITRECNO= DPRSTOLOTS.DTLLITITENO
-			AND EXCRECNO = EXPCHA.EXCCHAREC
-			AND BALTOLOTS.BTLSALOFFNO = DPRSTOLOTS.DTLSALOFFNO
-			AND BALTOLOTS.BTLLITITENO = ITECHG.LITRECNO
-			AND EXPCHA.EXCSALOFF = DPRSTOLOTS.DTLSALOFFNO
-			AND ITECHG.CTYNO = CHGTYP.CTYNO
-      AND ITECHG.LITRECNO = LITITENO_IN
-			AND NOT EXISTS (SELECT 1
-                            FROM DPRSTOLOTSCHGS CHECKIT
-                            WHERE CHECKIT.DTLCHGSDTLRECNO =  DPRSTOLOTS.DTLRECNO
-                            AND CHECKIT.DTLCHGSICHNO = ITECHG.ICHRECNO));
-
-
-    FOR ROUNDING_REC_TODO IN GET_ROUNDING_TODO(LITITENO_IN) LOOP
-      UPDATE DPRSTOLOTSCHGS
-      SET DTLCHGSRAWAPP = DTLCHGSRAWAPP + ROUNDING_REC_TODO.RawDiff
-      ,DTLCHGSBASEAPP = DTLCHGSBASEAPP + ROUNDING_REC_TODO.BASEDIFF
-      WHERE DPRSTOLOTSCHGS.DTLCHGSRECNO = ROUNDING_REC_TODO.MAXDTLCHGSRECNO;
-    END LOOP;
-
+  FOR DPRSTOLOTSPURCHGREC IN DPRSTOLOTSPURCHG_CUR(LITITENO_IN)
+  LOOP
+    INSERT INTO DPRSTOLOTSCHGS(
+                              DTLCHGSICHNO
+                             ,DTLCHGSDTLRECNO
+                             ,DTLCHGSRAWAPP
+                             ,DTLCHGSBASEAPP
+                             ,DTLCHGSEXCLFROMPL
+                             ,DTLCHGSCTYNO
+                             ,DTLCHGSCHARGECLASS
+                             ,DTLCHGSTYPNO)
+               VALUES       (DPRSTOLOTSPURCHGREC.ICHRECNO,
+                             DPRSTOLOTSPURCHGREC.DTLRECNO,
+                             DPRSTOLOTSPURCHGREC.LOTTODPRCHGAUTHAPPRAW,
+                             DPRSTOLOTSPURCHGREC.LOTTODPRCHGAPPBASE,
+                             DPRSTOLOTSPURCHGREC.EXCRECOVFROMPL,
+                             DPRSTOLOTSPURCHGREC.CTYNO,
+                             DPRSTOLOTSPURCHGREC.CHARGECLASS,
+                             DPRSTOLOTSPURCHGREC.TYPENO
+                            );                                         
+  END LOOP;
+  
+  FOR ROUNDING_REC_TODO IN GET_ROUNDING_TODO(LITITENO_IN) 
+  LOOP
+    UPDATE DPRSTOLOTSCHGS
+    SET DTLCHGSRAWAPP = DTLCHGSRAWAPP + ROUNDING_REC_TODO.RawDiff
+    ,DTLCHGSBASEAPP = DTLCHGSBASEAPP + ROUNDING_REC_TODO.BASEDIFF
+    WHERE DPRSTOLOTSCHGS.DTLCHGSRECNO = ROUNDING_REC_TODO.MAXDTLCHGSRECNO;
+  END LOOP;
+  
+  FOR GETBALTOLOTSPURCHGREC IN GETBALTOLOTSPURCHG_CUR(LITITENO_IN)
+  LOOP
     UPDATE BALTOLOTSCHGS
     SET ONSTOCKRAWAPP = RAWAPP - NVL((SELECT SUM(NVL(DTLCHGSRAWAPP,0)) FROM DPRSTOLOTSCHGS WHERE BALTOLOTSCHGS.ICHRECNO = DPRSTOLOTSCHGS.DTLCHGSICHNO),0)
     , ONSTOCKBASEAPP = BASEAPP - NVL((SELECT SUM(NVL(DTLCHGSBASEAPP,0)) FROM DPRSTOLOTSCHGS WHERE BALTOLOTSCHGS.ICHRECNO = DPRSTOLOTSCHGS.DTLCHGSICHNO),0)
-    WHERE BALTOLOTSCHGS.BTLRECNO in (Select BALTOLOTS.BTLRECNO
-                                      FROM BALTOLOTS
-                                      Where BALTOLOTS.BTLLITITENO = LITITENO_IN);
+    WHERE BALTOLOTSCHGS.BTLCHGSRECNO =  GETBALTOLOTSPURCHGREC.BTLCHGSRECNO;
+  END LOOP;
 
   COMMIT;
   EXCEPTION
