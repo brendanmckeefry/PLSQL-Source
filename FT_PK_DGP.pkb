@@ -1,6 +1,6 @@
 create or replace PACKAGE BODY FT_PK_DGP AS
   
-  cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
   SYS_LDODGPREPORTS   BOOLEAN := TO_BOOLEAN(FT_PK_UTILS.GET_SYSPREF('LDODGPREPORTS'));
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2

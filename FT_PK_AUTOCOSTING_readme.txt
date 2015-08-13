@@ -27,6 +27,18 @@
 *********************************************************************************	                                        
 
 	Spec Version 1.0.1
+	Body Version 1.0.2
+
+	Modified by: Paul Michael Thomas
+	Modified on: 08/04/2015      	
+	Modified Log: 14755
+	Changes Made:      
+	1) Changed to be single record inserts in all cases.
+	2) Added DGP call to eliminate duplicates.
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
 	Body Version 1.0.1
 
 	Modified by: Paul Michael Thomas
