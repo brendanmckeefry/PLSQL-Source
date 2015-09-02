@@ -204,3 +204,4 @@ AS
 --               V_USELITPAYTYP  := 0;
 --        END;
 END FT_PK_ALLOCATE_CHECK;
+/

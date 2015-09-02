@@ -1,6 +1,6 @@
 create or replace PACKAGE BODY FT_PK_DGP AS
   
-  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
   SYS_LDODGPREPORTS   BOOLEAN := TO_BOOLEAN(FT_PK_UTILS.GET_SYSPREF('LDODGPREPORTS'));
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
@@ -30,9 +30,12 @@ create or replace PACKAGE BODY FT_PK_DGP AS
       END IF;
     END IF;
   EXCEPTION
+    WHEN DUP_VAL_ON_INDEX THEN
+      NULL; --Ignore for small proportion of key violations  
     WHEN OTHERS THEN
       ROLLBACK;
       FT_PK_ERRORS.LOG_AND_CONTINUE;
   END ENQUEUE_DGPDPRSTODO;
   
 END FT_PK_DGP;
+/
