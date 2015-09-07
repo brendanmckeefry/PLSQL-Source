@@ -1,6 +1,6 @@
 CREATE OR REPLACE PACKAGE BODY FT_PK_VAT AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
 
 PROCEDURE GETBESTVAT( ClaRecNo_in IN ACCCLASS.CLARECNO%TYPE,
                       PrcPrdNo_in IN PRDREC.PRCPRDNO%TYPE,
@@ -108,7 +108,10 @@ BEGIN
 						 CASE WHEN NVL(vatlinks.ChgVatGrpNo,vAll) <> vAll THEN 1 ELSE 0 END +
 						 CASE WHEN NVL(vatlinks.CstVatType,vAll) <> vAll THEN 1 ELSE 0 END +
 						 CASE WHEN NVL(vatlinks.VatSalesOffice,vAll) <> vAll THEN 1 ELSE 0 END +
-						 CASE WHEN NVL(vatlinks.VatDlvType,vAll) <> vAll THEN 1 ELSE 0 END) AS NoMatches
+						 CASE WHEN NVL(vatlinks.VatDlvType,vAll) <> vAll THEN 1 ELSE 0 END) AS NoMatches,
+             vatlinks.VatAccCstSup, vatlinks.VatFromCountryNo, vatlinks.VatDlvCountryNo, 
+             vatlinks.VatSalesOffice, vatlinks.VatDlvType, vatlinks.VatCtyNo
+             
 				  FROM VATLINKS vatlinks
 				  WHERE vatlinks.VatAccCstSup = vClaAccCstSup
 				  		AND vatlinks.PanItRef1 = -1
@@ -124,7 +127,8 @@ BEGIN
 						AND (NVL(vatlinks.CstVatType,vAll) IN(vAll, vCstVatType))
 						AND (NVL(vatlinks.VatDlvType,vAll) IN(vAll, vDlvType))
 						AND (NVL(vatlinks.VatSalesOffice,vAll) IN(vAll, vSalOffNo))
-				  ORDER BY 4 DESC, 2;
+				  --ORDER BY 4 DESC, 2;
+          ORDER BY NoMatches DESC, VatAccCstSup, VatFromCountryNo, VatDlvCountryNo, VatSalesOffice, VatDlvType, VatCtyNo;
 
 			vat_match_rec 		vat_match_cur%ROWTYPE;
 		BEGIN
