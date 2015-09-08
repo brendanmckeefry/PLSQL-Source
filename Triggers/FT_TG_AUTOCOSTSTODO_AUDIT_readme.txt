@@ -1,7 +1,7 @@
 ********************************************************************************* 
 ****  
-****   Name : DGPAMENDMENTS		Type : TRIGGER
-****   Posts records to the DGPDPRSTODO table
+****   Name : FT_TG_AUTOCOSTSTODO_AUDIT			Type : TRIGGER
+****   Audit record of inserts and deletes on AUTOCOSTSTODO 
 ****  
 *********************************************************************************                           
 ****  
@@ -17,9 +17,9 @@
 ****  
 *********************************************************************************  
 ****  	                                        
-****  	Written by Arshad Din
-****  	Date: Jan 2015                        
-****  	Original Log Number: 13902                
+****  	Written by Brendan McKeefry
+****  	Date: Sept 2015                        
+****  	Original Log Number: 14965
 ****  
 *********************************************************************************
 
@@ -27,21 +27,14 @@
 
 	Spec Version 1.0.1                            
 
-	Modified by: Paul Michael Thomas
-	Modified on: 11/06/2015      	
-	Modified Log: 14337
+	Modified by: Brendan McKeefry
+	Modified on: 08/09/2015      	
+	Modified Log: 14965
 	Changes Made:      
-	1) Trigger was missing DPRRECNOs moved to auto cost procssing table
+	1) renamed trigger from AUTOCOSTSTODO_AUDIT" to FT_TG_AUTOCOSTSTODO_AUDIT
+	2) Added in FORMNO field to enable us to tell which process is writing the records
+	This will not be populated by all routines at this stage
+	However hte new delaudit routine FT_PK_SALES.PROCESS_DELAUDIT_FORAUTOCOST() writes a -9 to there 	
 
 *********************************************************************************	                                        
 
-	Spec Version 1.0.0                            
-
-	Modified by: Paul Michael Thomas
-	Modified on: 01/01/2015      	
-	Modified Log: 13902	
-	Changes Made:      
-	1) Changed trigger to use new package FT_PK_DGP
-	2) Made trigger AUTONOMOUS_TRANSACTION
-
-*********************************************************************************
