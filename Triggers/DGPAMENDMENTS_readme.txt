@@ -25,6 +25,12 @@
 
 *********************************************************************************	                                        
 
+10/09/2015  THIS TRIGGER IS NOT USED USED ANYMORE 
+		BECAUSE IT GAVE ME A HEART ATTACK JUST LOOKING AT IT (bmk)
+
+*********************************************************************************	                                        
+
+
 	Spec Version 1.0.1                            
 
 	Modified by: Paul Michael Thomas
