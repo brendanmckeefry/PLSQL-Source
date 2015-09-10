@@ -25,6 +25,21 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.2                            
+
+	Modified by: Brendan McKeefry
+	Modified on: 10/09/2015      	
+	Modified Log: 14965
+	Changes Made:      
+	1) Previous Trigger was an After Update query which when installed ran before the existing
+	trigger to populate the key value. This meant that the AUTOCOSTREC was not yet populated
+	and so in the audit this was null
+	This in turn meant that the DELETE trigger did not write a DELETETIME to the correct reocrd
+	So i made this trigger an 'AFTER INSERT'
+	
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.1                            
 
 	Modified by: Brendan McKeefry
