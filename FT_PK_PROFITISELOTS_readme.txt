@@ -26,6 +26,17 @@
 *********************************************************************************	                                        
 
 	Spec Version 1.0.1
+	Body Version 1.0.3
+
+	Modified by: Brendan McKeefry
+	Modified on: 17/09/2015
+	Modified Log: 14993
+	Changes Made:      
+	1) use ICHAUTHTOGLAMTBASE rather than go to ACCITE & PORECOVITE to get AUTH TO GL figures
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
 	Body Version 1.0.1
 
 	Modified by: Paul Michael Thomas
