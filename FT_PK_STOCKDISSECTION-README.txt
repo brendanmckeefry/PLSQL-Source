@@ -18,7 +18,23 @@
  ****  	Original Log Number: 	
 
                 
-                
+            
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.3
+ ****  	Body Version 1.0.6
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     01/10/2015      		
+ ****  	Last Modified Log:    14893	
+ ****  	Change Made:          
+	(1)	Bug fix to the above 
+this line 
+	AND NVL(DELTOALL.DALQTY,0) > 0 ),0) DALQTY
+became	
+	AND NVL(DELTOALL.DALQTY,0) + NVL(DELTOALL.ACTSPLITQTY,0) > 0 ),0) DALQTY
+to include splits
+    
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.3
  ****  	Body Version 1.0.5

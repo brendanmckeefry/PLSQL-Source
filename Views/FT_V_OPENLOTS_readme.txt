@@ -1,7 +1,7 @@
 ********************************************************************************* 
 ****  
-****   Name : FT_PK_PROFITISELOTS		Type : PACKAGE
-****   Package used to maintain profitise status on LOTPROFITSALOFF
+****   Name : FT_V_OPENLOTS		Type : VIEW
+****   Internal view to return costing information
 ****  
 *********************************************************************************                           
 ****  
@@ -18,44 +18,31 @@
 *********************************************************************************  
 ****  	                                        
 ****  	Written by Paul Michael Thomas
-****  	Date: Jan 2015                        
-****  	Original Log Number: 7510                
+****  	Date: SEPT 2015                        
+****  	Original Log Number:                 
 ****  
 *********************************************************************************
 
 *********************************************************************************	                                        
 
-	Spec Version 1.0.1
-	Body Version 1.0.3
+  	Body Version 1.0.1                           
 
 	Modified by: Brendan McKeefry
-	Modified on: 17/09/2015
-	Modified Log: 14993
+	Modified on: 17/09/2015      	
+	Modified Log: 	14965
 	Changes Made:      
-	1) use ICHAUTHTOGLAMTBASE rather than go to ACCITE & PORECOVITE to get AUTH TO GL figures
+	1) When View went live it was slow & taken out
+	this was due to 2 outer joins on ACCITE and PORECOVITE to get the Authorised to GL
+	2 extra fields where added to BALTOLOTSCHGS to stop this 
 
 *********************************************************************************	                                        
 
-	Spec Version 1.0.1
-	Body Version 1.0.1
+  	Body Version 1.0.1                           
 
 	Modified by: Paul Michael Thomas
-	Modified on: 08/04/2015      	
-	Modified Log: 13648
+	Modified on: 08/09/2015      	
+	Modified Log: 	 14470
 	Changes Made:      
-	1) Changed CurrentVersion to return spec and body version numbers
-	2) Changed AUTOCOSTING table name
-
-*********************************************************************************	                                        
-
-	Spec Version 1.0.0
-  	Body Version 1.0.0                             
-
-	Modified by: Paul Michael Thomas
-	Modified on: 01/01/2015      	
-	Modified Log: 7510	
-	Changes Made:      
-	1) Renamed package FT_PK_...
-	2) Added version control info
+	1) View to give open lot information
 
 *********************************************************************************

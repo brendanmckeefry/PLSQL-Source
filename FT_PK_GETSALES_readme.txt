@@ -26,6 +26,22 @@
 *********************************************************************************	                                        
 
 	Spec Version 1.0.3
+	Body Version 1.0.7
+
+	Modified by: Brendan McKeefry
+	Modified on: 14/09/2015      	
+	Modified Log: 14993
+	Changes Made:      
+	1) 
+Added new fields to 
+BALTOLOTSCHGS - BASEAUTHTOGLAMT & RAWAUTHTOGLAMT 
+DPRSTOLOTSCHGS - DTLBASEAUTHTOGLAMT & DTLRAWAUTHTOGLAMT
+
+And changed the Body to write to these
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.3
 	Body Version 1.0.3
 
 	Modified by: Arshad Din

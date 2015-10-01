@@ -1,7 +1,7 @@
 SET DEFINE OFF;
     CREATE OR REPLACE PACKAGE BODY FT_PK_STOCKDISSECTION
     AS
-      cVersionControlNo   VARCHAR2(12) := '1.0.5'; -- Current Version Number
+      cVersionControlNo   VARCHAR2(12) := '1.0.6'; -- Current Version Number
 
       --VARIABLES FOR OVER SOLD DETAILS
       GLBALLOCNO                    NUMBER(10)        :=0;
@@ -2335,7 +2335,7 @@ SET DEFINE OFF;
                            FROM DELTOALL 
                            WHERE  DELTOALL.DALTYPERECNO =  DELDET.DELRECNO 
                            AND DALRECORDTYPE = 1 
-                           AND NVL(DELTOALL.DALQTY,0) > 0 ),0) DALQTY
+                           AND NVL(DELTOALL.DALQTY,0) + NVL(DELTOALL.ACTSPLITQTY,0) > 0 ),0) DALQTY
               FROM DELDET
               WHERE DELDLVORDNO = V_DLVORDNO)
               WHERE DELQTY > DALQTY;

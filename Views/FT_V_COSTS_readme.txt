@@ -25,6 +25,15 @@
 
 *********************************************************************************	                                        
 
+	Version 1.0.1
+	Modified by: Brendan McKeefry
+	Modified on: 17/09/2015      	
+	Modified Log: 14993
+	Changes Made:      
+	1) Now picks up the 2 extra fields - ICHAUTHTOGLAMTBASE,ICHAUTHTOGLAMTRAW - Authorised to GL in ACCITE 
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.0
   	Body Version 1.0.0                             
 
