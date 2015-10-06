@@ -17,6 +17,29 @@
  ****  	Date: Dec 2014                          
  ****  	Original Log Number: 	
 
+DISSECTDELIVERY  
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.3
+ ****  	Body Version 1.0.7
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     06/10/2015      		
+ ****  	Last Modified Log:    14893	
+ ****  	Change Made:          
+	(1)	Bug fix to the method DISSECTDELIVERY   on this this line 
+              (SELECT DALWIZUNIQUEID, FT_PK_STOCKDISSECTION.ISALLOCATE_OVERALLOC(NULL, DELTOALL.DALWIZUNIQUEID, SYSDATE)  ISALLOCATE_OVERALLOC
+
+became	
+              (SELECT DALWIZUNIQUEID, FT_PK_STOCKDISSECTION.ISALLOCATE_OVERALLOC(NULL, DELTOALL.DALWIZUNIQUEID, DELHED.DLVSHPDATE)  ISALLOCATE_OVERALLOC
+
+
+When using the sysdate 
+If you had a dlv for Monday 
+And expected stock on Sunday 
+It would allow that to be dissected on Friday as it did not cause an oversell on the SYSDATE.
+THis should not go throught as MARKETTODELIVER will try to pick it up and process it and this results in a screen error
+
                 
             
  ****************************************************************************************************** 
