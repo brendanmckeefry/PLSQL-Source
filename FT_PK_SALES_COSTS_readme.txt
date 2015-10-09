@@ -26,6 +26,24 @@
 
 *********************************************************************************
 
+
+	Spec Version 1.0.1
+	Body Version 1.0.4
+
+	Modified by: Arshad Din
+	Modified on: 09/10/2015      	
+	Modified Log: 14860
+	Changes Made:      
+	1) Records not apportioned if fixed and Ichistrecno is null
+  2) New rules added - i) Do not want to apportion debit notes, credit notes (stk and non stk)
+  3) Want to apportion to unallocated lines, allocated lines and dlvd lines.
+  4) should fix and unfix trigger a re-apportionment.
+
+*********************************************************************************
+
+*********************************************************************************
+
+
 	Spec Version 1.0.1
 	Body Version 1.0.4
 

@@ -3,50 +3,52 @@ create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
   cVersionControlNo   VARCHAR2(12) := '1.0.4'; -- Current Version Number
   
   CURSOR TC_IchOldAppAmt(IN_EXCRECNO INTEGER) IS
-      Select IchRecNo, IchAppAmt FROM IteChg, chgtyp 
-      Where itechg.CtyNo = chgtyp.CtyNo 
-      AND IteChg.ExcRecNo =  IN_EXCRECNO
-      AND IteChg.ICHSPETO IS NULL;
+      Select Ichrecno, Ichappamt From Itechg, Chgtyp 
+      Where Itechg.Ctyno = Chgtyp.Ctyno 
+      And Itechg.Excrecno =  IN_EXCRECNO
+      And (Itechg.Ichspeto Is Null Or Ichistrecno Is Null);
  
   CURSOR TC_DlvToExp(IN_DLVORDNO INTEGER, IN_EXCRECNO INTEGER) IS     
-      Select DelRecNo, DelPrice.DprRecNo, DelQtyPer, PrcWeight, PrcBoxQty, InnerQty,
-	   (Case When DelPricePer = 2 then DelNettweight * DelPrcQty else PrcWeight * DelPrcQty end) Weight_ALLOC,
-	   (Case When DelPricePer = 2 then DelNettweight * DisQty else PrcWeight * DisQty end) Weight_DLVD,
-	   Case When PRCPACPAL = 0 then DelPrcQty else Round(delQty / PRCPACPAL, 2) end RndPals,
-	   Case When PRCPACPAL = 0 then DelPrcQty else Ceil(Round(delQty / PRCPACPAL, 2)) end ActPals,
-	   (Select Count(PallocRecNo) from Paltodel Where PallocDelrecno  = DelDet.DELRECNO) PaltoDelCount,
-	   DelQty, DelPrice.DelPrcQty, DelPrice.delNettValue, ExcChaRec, ExcRawAmm, ExcConAmm, EXCTOEUROEXCRATE,EXCTOBASERATE,EXCAPPTYPE, ExcCtyNo, EXCCHGCALC,
-	   NVL(ExcConAmm,0) - NVL((Select SUM(NVL(IchAppAmt,0))
-					   			From IteChg
-									Where IteChg.ICHSPETO IS NOT NULL
-									And Expcha.ExcCharec = IteChg.ExcRecNo),0) TotToApp,
-	      chgtyp.Ctydesc, Nvl(chgtyp.ChgIgnoreCrDr, 0) ChgIgnoreCrDr, DelDet.RndApportPals,
-		NVL(deltoist.DisStkQty, delprice.DelPrcQty) AS DisStkQty,
-	 Nvl(deltoist.DisIstRecNo, (Select Min(PalLocIstRecNo) from PalNoLoc, DelToAll Where DelToAll.DalAllocNo = PalNoLoc.pallocallno AND DalRecordType = 1 AND DalTypeRecNo = Deldet.DelRecNo)) DisIstRecNo
-	From DelDet, DelPrice, PrdRec, Expcha, chgtyp, DELTOIST
-	Where Deldet.delprcprdno = PrdRec.prcprdno
-	AND DelPrice.DprDelrecNo = DelDet.DelrecNo
-	And Deldet.DelDlvOrdNo =  IN_DLVORDNO
-	And Expcha.ExcDlvOrdNo = Deldet.DelDlvOrdNo
-	And Expcha.ExcChaRec =  IN_EXCRECNO
-	And DelPrice.DelPrcQty <> 0
-	And DelPrice.DprRecNo = deltoist.DisDprRecNo(+)
-	AND Expcha.ExcCtyNo = chgtyp.CtyNo
-	And Not Exists (Select *
-					 	 From IteChg
-						 Where IteChg.ExcRecNo = ExpCha.ExcChaRec
-						 And IteChg.ICHSPETO IS NOT NULL
-						 And IteChg.DPRRECNO = Delprice.DprRecNo)
-	 Order by delrecno, dprrecno;
+        Select Delrecno, Delprice.Dprrecno, Delqtyper, Prcweight, Prcboxqty, Innerqty,
+       (Case When Delpriceper = 2 Then Delnettweight * Delprcqty Else Prcweight * Delprcqty End) Weight_Alloc,
+       (Case When Delpriceper = 2 Then Delnettweight * Disqty Else Prcweight * Disqty End) Weight_Dlvd,
+       Case When Prcpacpal = 0 Then Delprcqty Else Round(Delqty / Prcpacpal, 2) End Rndpals,
+       Case When Prcpacpal = 0 Then Delprcqty Else Ceil(Round(Delqty / Prcpacpal, 2)) End Actpals,
+       (Select Count(Pallocrecno) From Paltodel Where Pallocdelrecno  = Deldet.Delrecno) Paltodelcount,
+       Delqty, Delprice.Delprcqty, Delprice.Delnettvalue, Exccharec, Excrawamm, Excconamm, Exctoeuroexcrate,exctobaserate,excapptype, Excctyno, Excchgcalc,
+       Nvl(Excconamm,0) - Nvl((Select Sum(Nvl(Ichappamt,0))
+                    from Itechg
+                    where Itechg.Ichspeto Is Not Null
+                    and Expcha.Exccharec = Itechg.Excrecno),0) Tottoapp,
+          Chgtyp.Ctydesc, Nvl(Chgtyp.Chgignorecrdr, 0) Chgignorecrdr, Deldet.Rndapportpals,
+     nvl(Deltoist.Disstkqty, Delprice.Delprcqty) As Disstkqty,
+     Nvl(Deltoist.Disistrecno, (Select Min(Pallocistrecno) From Palnoloc, Deltoall Where Deltoall.Dalallocno = Palnoloc.Pallocallno And Dalrecordtype = 1 And Daltyperecno = Deldet.Delrecno)) Disistrecno
+    from Deldet, Delprice, Prdrec, Expcha, Chgtyp, Deltoist
+    where Deldet.Delprcprdno = Prdrec.Prcprdno
+    and Delprice.Dprdelrecno = Deldet.Delrecno
+    and Deldet.Deldlvordno =  IN_DLVORDNO
+    and Expcha.Excdlvordno = Deldet.Deldlvordno
+    and Expcha.Exccharec =  IN_EXCRECNO
+    and Delprice.Delprcqty > 0 -- Remove All Credit Notes
+    and Nvl(Dprispriceadjonly,0) = 0 -- Remove All Debit Notes
+    and Delprice.Dprrecno = Deltoist.Disdprrecno(+)
+    and Expcha.Excctyno = Chgtyp.Ctyno
+    and Not Exists (Select *
+               From Itechg
+               Where Itechg.Excrecno = Expcha.Exccharec
+               And Itechg.Ichspeto Is Not Null 
+               And Itechg.Ichistrecno Is Not Null
+               And Itechg.Dprrecno = Delprice.Dprrecno)
+     Order By Delrecno, Dprrecno;
 
-CURSOR TC_DelAudResultSet(IN_DLVORDNO INTEGER, IN_EXCRECNO INTEGER) IS
-  select IteChg.IchRecNo, ExcRecNo, IteChg.DprRecNo, CtyNo, IchAppAmt, DelPrice.DprDelRecNo DelRecNo  
-  from IteChg, ExpCha, DelPrice 
-  Where ExpCha.excDlvOrdNo = IN_DLVORDNO
-  And Expcha.ExcChaRec =  IN_EXCRECNO
-  AND IteChg.ExcRecNo = ExpCha.ExcChaRec
-  AND IteChg.DprRecNo = DelPrice.DprRecNo
-  And IteChg.ICHSPETO IS NULL;
+CURSOR TC_DELAUDRESULTSET(IN_DLVORDNO INTEGER, IN_EXCRECNO INTEGER) IS
+  Select Itechg.Ichrecno, Excrecno, Itechg.Dprrecno, Ctyno, Ichappamt, Delprice.Dprdelrecno Delrecno  
+  From Itechg, Expcha, Delprice 
+  Where Expcha.Excdlvordno = IN_DLVORDNO
+  And Expcha.Exccharec =  IN_EXCRECNO
+  And Itechg.Excrecno = Expcha.Exccharec
+  And Itechg.Dprrecno = Delprice.Dprrecno
+  And (Itechg.Ichspeto Is Null Or Itechg.Ichistrecno Is Null);
 
 --**********************************************************************
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
@@ -174,10 +176,6 @@ BEGIN
     BEGIN
 	    SQLStr := 'Select ExcCtyNo, SUM((Case When DelPricePer = 2 then DelNettweight * DelQty else PrcWeight * DelQty end)) WeightTot_ALLOC, ' || DTISel ||
         '   Sum(Case When PRCPACPAL = 0 then delQty else Round(delQty / PRCPACPAL, 2) end) RndPalsTot,' ||
-        --'   Sum(Case When PRCPACPAL = 0 then DelQty else Ceil(Round(delQty / PRCPACPAL, 2)) end) ActPalsTot,' ||
-        --'   SUM((Select Count(PallocRecNo) from Paltodel Where PallocDelrecno  = DelDet.DELRECNO)) PaltoDelCount,' ||
-        --'   SUM(DelPrcQty) DelQtyTot, ExcChaRec, ExcRawAmm, ExcConAmm, EXCTOEUROEXCRATE,EXCTOBASERATE,EXCAPPTYPE, EXCCHAPERRATE, Max(DelPrice.DELINVSTATUS) as MAX_DELINVSTATUS, ' ||
-        --' SUM(DelPrcQty) DelQtyTot,' ||
         ' EXCAPPTYPE, Max(DelPrice.DELINVSTATUS) as MAX_DELINVSTATUS,' ||
         '   NVL(Sum(DelNettValue), 0) DelNettValueTot,  ' ||
         '   Sum(RndApportPals) TotRndApportPals' ||
@@ -191,9 +189,12 @@ BEGIN
         '				 	 From IteChg' ||
         '					 Where IteChg.ExcRecNo = ExpCha.ExcChaRec' ||
         '					 And IteChg.ICHSPETO IS NOT NULL' ||
+        '          And Itechg.Ichistrecno Is Not Null' ||     
         '					 And IteChg.DPRRECNO = Delprice.DprRecNo) ' ||
         DTILnk ||
-        ' And Deldet.DelQty > 0 ' ||
+        ' And Deldet.DelQty > 0 ' ||       
+        'And DELPRICE.DELPRCQTY > 0' || -- Remove All Credit Notes
+        'And Nvl(Dprispriceadjonly,0) = 0' || -- Remove All Debit Notes       
         ' group by ExcCtyNo, ExcChaRec, ExcRawAmm, ExcConAmm, EXCTOEUROEXCRATE,EXCTOBASERATE,EXCAPPTYPE, EXCCHAPERRATE';
     
   /*	if Not (tc["DlvToExpTot"].DelQtyTot > 0) Then
@@ -239,7 +240,7 @@ BEGIN
         END LOOP;
         CLOSE RefCursorVar;
         
-      EXCEPTION
+        EXCEPTION
         WHEN NO_DATA_FOUND THEN
              --RAISE_APPLICATION_ERROR(-20002, 'ORACLE PACKAGE -FT_PK_SALES_COSTS - LOTITEAPPORTION_DELPRICE() - RefCursorVar No Data' ||CHR(13) || CHR(10) || SQLCODE || CHR(13) || CHR(10) || SQLERRM);    
              FT_PK_ERRORS.LOG_AND_STOP;
@@ -249,65 +250,64 @@ BEGIN
              --RAISE_APPLICATION_ERROR(-20002, 'ORACLE PACKAGE -FT_PK_SALES_COSTS - LOTITEAPPORTION_DELPRICE() - RefCursorVar' ||CHR(13) || CHR(10) || SQLCODE || CHR(13) || CHR(10) || SQLERRM);    
              V_CONT := 0;
       END;       
-       
-      if IEXCAPPTYPE = CONST.C_APP_BOX THEN   
-        Select                             
-         Sum(Case when DelQtyPer = 1 Then delQty 
-                  when DelQtyPer = 2 Then DelQty / Nvl(PrcWeight, 1)
-                  when DelQtyPer = 3 Then DelQty / Nvl(PrcBoxQty, 1)
-                  when DelQtyPer = 4 Then DelQty / Nvl(InnerQty, 1)	
-       	     end) 
-        INTO FloatDelQty                  
-        from deldet, PrdRec
-        Where deldet.deldlvordno = IN_DLVORDNO
-        AND deldet.DelPrcPrdNo = PrdRec.PrcPrdNo
-        AND deldet.DelRecNo in (Select DprDelRecNo from DelPrice Where DprRecNo in (select DprRecNo From Expcha, IteChg 
-                                                                                   Where Expcha.ExcChaRec = IN_EXCRECNO
-                                                                                   AND Expcha.ExcChaRec = IteChg.ExcRecNo))  --only charges where dpr exist
-        Order by delRecNo;
-      END IF;                                                                                                        
+      
+      if V_CONT = 1 Then
+        if IEXCAPPTYPE = CONST.C_APP_BOX THEN   
+          Select                             
+           Sum(Case when DelQtyPer = 1 Then delQty 
+                    when DelQtyPer = 2 Then DelQty / Nvl(PrcWeight, 1)
+                    when DelQtyPer = 3 Then DelQty / Nvl(PrcBoxQty, 1)
+                    when DelQtyPer = 4 Then DelQty / Nvl(InnerQty, 1)	
+               end) 
+          INTO FloatDelQty                  
+          from deldet, PrdRec
+          Where deldet.deldlvordno = IN_DLVORDNO
+          AND DELDET.DELPRCPRDNO = PRDREC.PRCPRDNO
+          AND DELDET.DELRECNO IN (SELECT Delprice.Dprdelrecno 
+                                  from DelPrice Expcha,IteChg 
+                                  Where Expcha.ExcChaRec = IN_EXCRECNO
+                                  AND EXPCHA.EXCCHAREC = ITECHG.EXCRECNO
+                                  And Itechg.Dprrecno = Delprice.Dprrecno)  --only charges where dpr exist
+          Order by delRecNo;
+        END IF; 
+      End If;
     
-     EXCEPTION
+    EXCEPTION
        WHEN OTHERS THEN
          --RAISE_APPLICATION_ERROR(-20002, 'ORACLE PACKAGE -FT_PK_SALES_COSTS - LOTITEAPPORTION_DELPRICE() - DlvToExpTot' ||CHR(13) || CHR(10) || SQLCODE || CHR(13) || CHR(10) || SQLERRM);                         
          FT_PK_ERRORS.LOG_AND_STOP;
+         V_CONT := 0;
     END;  
   END IF;
          
 --***** (2) Find existing IteChgs and update or insert******************************         
          
   IF V_CONT = 1 THEN
-    BEGIN
-    
+    BEGIN    
       -- S = Sales, I = Purchases (of course) ;= recalc the sales Itechgs.   tc["IchOldAppAmt"]
 	    --Get ALL unfixed itechgs to apportion.                                          
     FOR IchOldAppAmt_REC IN TC_IchOldAppAmt(IN_EXCRECNO) LOOP                   
-       ORIGITECHG(IchOldAppAmt_REC.IchRecNo) := IchOldAppAmt_REC.IchAppAmt;
-       
-       --For example of dynarray equivalent, see...
-       --FT_PK_COSTING.AUTO_PO_COSTS() =>   TYPE CONTAINER_AMTS IS TABLE OF FLOAT INDEX BY PLS_INTEGER;
-       
-       --ZEROING: Cannot do this here as it zeroes it every other go
-       --FT_PK_COST_WRITES.UPDATE_ICHAPPAMT(IchOldAppAmt_REC.IchRecNo, 0.00);       
+       ORIGITECHG(ICHOLDAPPAMT_REC.ICHRECNO) := ICHOLDAPPAMT_REC.ICHAPPAMT;    
     END LOOP;
     
     --;Reset the IteChgs that are NOT fixed.  
-    -- could use FT_PK_COST_WRITES.UPDATE_ICHAPPAMT(ICHRECNO_IN ITECHG.ICHRECNO%TYPE, ICHAPPAMT_IN ITECHG.ICHAPPAMT%TYPE) 
    IF V_CONT = 1 THEN 
      UPDATE IteChg 	SET ICHAPPAMT = 0.00  --now done above
-     Where IteChg.ExcRecNo = IN_EXCRECNO
-     AND IteChg.ICHSPETO IS NULL;
+     WHERE ITECHG.EXCRECNO = IN_EXCRECNO
+     And (Itechg.Ichspeto Is Null Or Ichistrecno Is Null);
    END IF;  
       
-   NumDlvToExp_RECs := 0; 
-   FOR DlvToExp_REC IN TC_DlvToExp(IN_DLVORDNO, IN_EXCRECNO) LOOP
-     --want to do this...   --TCDlvToExpCount := TC_DlvToExp.Count;  
-     --This is not counting the number of Itechgs, but the number needed.
-       NumDlvToExp_RECs := NumDlvToExp_RECs + 1;
-       
-       ExcConAmmNuLeft         := DlvToExp_REC.TotToApp; --extracted at detail level because
-       NuTotalValueToApportion := DlvToExp_REC.TotToApp; --some may be authorised.
-    END LOOP; 
+   NUMDLVTOEXP_RECS := 0;
+   IF V_CONT = 1 THEN 
+     FOR DlvToExp_REC IN TC_DlvToExp(IN_DLVORDNO, IN_EXCRECNO) LOOP
+       --want to do this...   --TCDlvToExpCount := TC_DlvToExp.Count;  
+       --This is not counting the number of Itechgs, but the number needed.
+         NumDlvToExp_RECs := NumDlvToExp_RECs + 1;
+         
+         ExcConAmmNuLeft         := DlvToExp_REC.TotToApp; --extracted at detail level because
+         NuTotalValueToApportion := DlvToExp_REC.TotToApp; --some may be authorised.
+      END LOOP; 
+    End if;
             
     IF V_CONT = 1 THEN
        IF NumDlvToExp_RECs = 0 Then
