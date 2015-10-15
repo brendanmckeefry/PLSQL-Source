@@ -15,11 +15,19 @@ create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
        Case When Prcpacpal = 0 Then Delprcqty Else Round(Delqty / Prcpacpal, 2) End Rndpals,
        Case When Prcpacpal = 0 Then Delprcqty Else Ceil(Round(Delqty / Prcpacpal, 2)) End Actpals,
        (Select Count(Pallocrecno) From Paltodel Where Pallocdelrecno  = Deldet.Delrecno) Paltodelcount,
-       Delqty, Delprice.Delprcqty, Delprice.Delnettvalue, Exccharec, Excrawamm, Excconamm, Exctoeuroexcrate,exctobaserate,excapptype, Excctyno, Excchgcalc,
-       Nvl(Excconamm,0) - Nvl((Select Sum(Nvl(Ichappamt,0))
-                    from Itechg
-                    where Itechg.Ichspeto Is Not Null
-                    and Expcha.Exccharec = Itechg.Excrecno),0) Tottoapp,
+       Delqty, Delprice.Delprcqty, Delprice.Delnettvalue, Exccharec, Excrawamm, Excconamm, Exctoeuroexcrate,exctobaserate,excapptype, Excctyno, Excchgcalc, Exccurrno,
+	   Case When NVL(Exccurrno,1) = 1
+	   		then
+		       Nvl(Excconamm,0) - Nvl((Select Sum(Nvl(Ichappamt,0))
+					                    from Itechg
+					                    where (Itechg.Ichspeto Is Not Null Or Ichistrecno Is Null)
+					                    and Expcha.Exccharec = Itechg.Excrecno),0) 
+			else
+			   Nvl(Excrawamm,0) - Nvl((Select Sum(Nvl(Ichrawappamt,0))
+					                    from Itechg
+					                    where (Itechg.Ichspeto Is Not Null Or Ichistrecno Is Null)
+					                    and Expcha.Exccharec = Itechg.Excrecno),0) 
+			end Tottoapp,
           Chgtyp.Ctydesc, Nvl(Chgtyp.Chgignorecrdr, 0) Chgignorecrdr, Deldet.Rndapportpals,
      nvl(Deltoist.Disstkqty, Delprice.Delprcqty) As Disstkqty,
      Nvl(Deltoist.Disistrecno, (Select Min(Pallocistrecno) From Palnoloc, Deltoall Where Deltoall.Dalallocno = Palnoloc.Pallocallno And Dalrecordtype = 1 And Daltyperecno = Deldet.Delrecno)) Disistrecno
@@ -29,8 +37,7 @@ create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
     and Deldet.Deldlvordno =  IN_DLVORDNO
     and Expcha.Excdlvordno = Deldet.Deldlvordno
     and Expcha.Exccharec =  IN_EXCRECNO
-    and Delprice.Delprcqty > 0 -- Remove All Credit Notes
-    and Nvl(Dprispriceadjonly,0) = 0 -- Remove All Debit Notes
+	And DelPrice.DelPrcQty <> 0
     and Delprice.Dprrecno = Deltoist.Disdprrecno(+)
     and Expcha.Excctyno = Chgtyp.Ctyno
     and Not Exists (Select *
@@ -189,12 +196,10 @@ BEGIN
         '				 	 From IteChg' ||
         '					 Where IteChg.ExcRecNo = ExpCha.ExcChaRec' ||
         '					 And IteChg.ICHSPETO IS NOT NULL' ||
-        '          And Itechg.Ichistrecno Is Not Null' ||     
+        '                    And Itechg.Ichistrecno Is Not Null' ||     
         '					 And IteChg.DPRRECNO = Delprice.DprRecNo) ' ||
         DTILnk ||
-        ' And Deldet.DelQty > 0 ' ||       
-        'And DELPRICE.DELPRCQTY > 0' || -- Remove All Credit Notes
-        'And Nvl(Dprispriceadjonly,0) = 0' || -- Remove All Debit Notes       
+        ' And Deldet.DelQty > 0 ' ||        
         ' group by ExcCtyNo, ExcChaRec, ExcRawAmm, ExcConAmm, EXCTOEUROEXCRATE,EXCTOBASERATE,EXCAPPTYPE, EXCCHAPERRATE';
     
   /*	if Not (tc["DlvToExpTot"].DelQtyTot > 0) Then
@@ -404,7 +409,7 @@ BEGIN
          
         If Not FoundIte THEN
           BEGIN
-            SELECT IchRecNo, IchSpeTo, IchAppAmt 
+            SELECT IchRecNo, NULL IchSpeTo, IchAppAmt 
             INTO  V_IchRecNo, V_IchSpeTo, V_IchAppAmt
             FROM ITECHG
             WHERE ExcRecNo = IN_EXCRECNO
@@ -449,13 +454,13 @@ BEGIN
           if FoundIte = True Then
            
             if V_IchSpeTo IS NULL Then
-						  if TotToAppFacNu > 0.009 then
-							  TotToAppPerIte := PerLnToAppFacNu * DlvToExp_REC.TotToApp;  -- TotToAppFacNu  TotToApp
-							  TotToAppPerIte := TotToAppPerIte / TotToAppFacNu;
-							  --TotToAppPerIte := TotToAppPerIte.round(2);
-                TotToAppPerIte := round(TotToAppPerIte, 2);
-						  end if;
-						  ExcConAmmNuLeft := ExcConAmmNuLeft - TotToAppPerIte;
+			  if TotToAppFacNu > 0.009 then
+				  TotToAppPerIte := PerLnToAppFacNu * DlvToExp_REC.TotToApp;  -- TotToAppFacNu  TotToApp
+				  TotToAppPerIte := TotToAppPerIte / TotToAppFacNu;
+				  --TotToAppPerIte := TotToAppPerIte.round(2);
+             	  TotToAppPerIte := round(TotToAppPerIte, 2);
+			  end if;
+			  ExcConAmmNuLeft := ExcConAmmNuLeft - TotToAppPerIte;
             end if;
              
             NxtIteNo := V_IchRecNo;
@@ -478,35 +483,45 @@ BEGIN
           end if;
           
           if V_CONT = 1 Then --;if were on the last record, whack it all on.				
-					  if DlvToExpLoopCnt = NumDlvToExp_RECs Then
-						  if Abs(ExcConAmmNuLeft) > 0.009 then
-							   TotToAppPerIte := TotToAppPerIte + ExcConAmmNuLeft;
-						  end if;
-					  end if;
-				  end if;          
+			  if DlvToExpLoopCnt = NumDlvToExp_RECs Then
+				  if Abs(ExcConAmmNuLeft) > 0.009 then
+					   TotToAppPerIte := TotToAppPerIte + ExcConAmmNuLeft;
+				  end if;
+			  end if;
+		  end if;          
           
+		  if V_CONT = 1 Then
           ITECHG_TO_WRITE.EXCRECNO       := IN_EXCRECNO;                    
-          ITECHG_TO_WRITE.IchAppAmt      := TotToAppPerIte;
-          ITECHG_TO_WRITE.ICHAPPFAC      := DlvToExp_REC.EXCAPPTYPE;
-          ITECHG_TO_WRITE.ICHCHACALC     := DlvToExp_REC.EXCCHGCALC;          
-          ITECHG_TO_WRITE.ICHCHNGDBYUSER := 1;
-          ITECHG_TO_WRITE.IchIstRecNo    := DlvToExp_REC.disIstRecNo;
-          
-          if InsertIt then
-            ITECHG_TO_WRITE.DprRecNo     := DlvToExp_REC.DprRecNo;
-            ITECHG_TO_WRITE.CTYNO        := ExcCtyNo;
+          ITECHG_TO_WRITE.Ichrawappamt   := TotToAppPerIte;
+		  
+          if DlvToExp_REC.ExcCurrNo <> 1
+          then
+             ITECHG_TO_WRITE.IchAppAmt  := Round(TotToAppPerIte * Nvl(DlvToExp_REC.EXCTOBASERATE, 1.00), 2);
           else
-            ITECHG_TO_WRITE.IchRecNo     := V_IchRecNo;
+             ITECHG_TO_WRITE.ICHAPPAMT   := TOTTOAPPPERITE;
           end if;
-          
-          if InsertIt then                    
-            FT_PK_COST_WRITES.INSERT_ITECHG(ITECHG_TO_WRITE);
-          else   
-            FT_PK_COST_WRITES.UPDATE_ITECHG(ITECHG_TO_WRITE);            
-					end if;
-                            
+        
+              ITECHG_TO_WRITE.ICHAPPFAC      := DlvToExp_REC.EXCAPPTYPE;
+              ITECHG_TO_WRITE.ICHCHACALC     := DlvToExp_REC.EXCCHGCALC;          
+              ITECHG_TO_WRITE.ICHCHNGDBYUSER := 1;
+              ITECHG_TO_WRITE.IchIstRecNo    := DlvToExp_REC.disIstRecNo;
+              
+              if InsertIt then
+                ITECHG_TO_WRITE.DprRecNo     := DlvToExp_REC.DprRecNo;
+                ITECHG_TO_WRITE.CTYNO        := ExcCtyNo;
+              else
+                ITECHG_TO_WRITE.IchRecNo     := V_IchRecNo;
+              end if;
+              
+              if InsertIt then                    
+                FT_PK_COST_WRITES.INSERT_ITECHG(ITECHG_TO_WRITE);
+              else   
+                FT_PK_COST_WRITES.UPDATE_ITECHG(ITECHG_TO_WRITE);            
+              end if;
+                                
+          END IF;
         end if;
-                              
+                                  
       END LOOP;
     END IF;      
     
