@@ -9,13 +9,22 @@ create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
       And (Itechg.Ichspeto Is Null Or Ichistrecno Is Null);
 
   CURSOR TC_DlvToExp(IN_DLVORDNO INTEGER, IN_EXCRECNO INTEGER) IS
-	Select * from (	   Select Delrecno, Delprice.Dprrecno, Delqtyper, Prcweight, Prcboxqty, Innerqty,
-       (Case When Delpriceper = 2 Then Delnettweight * Delprcqty Else Prcweight * Delprcqty End) Weight_Alloc,
-       (Case When Delpriceper = 2 Then Delnettweight * Disqty Else Prcweight * Disqty End) Weight_Dlvd,
-       Case When Prcpacpal = 0 Then Delprcqty Else Round(Delqty / Prcpacpal, 2) End Rndpals,
-       Case When Prcpacpal = 0 Then Delprcqty Else Ceil(Round(Delqty / Prcpacpal, 2)) End Actpals,
-       (Select Count(Pallocrecno) From Paltodel Where Pallocdelrecno  = Deldet.Delrecno) Paltodelcount,
-       Delqty, Delprice.Delprcqty, Delprice.Delnettvalue, Exccharec, Excrawamm, Excconamm, Exctoeuroexcrate,exctobaserate,excapptype, Excctyno, Excchgcalc, Exccurrno,
+		Select * from (Select Delrecno, Delprice.Dprrecno, Delqtyper, Prcweight, Prcboxqty, Innerqty,
+       (Case When Delpriceper = 2 Then Delnettweight * Delprcqty Else Prcweight * Delprcqty End) Weight_Alloc,   
+       (Case When Delpriceper = 2 Then Delnettweight * Disqty Else Prcweight * Disqty End) Weight_Dlvd,   
+       Case When PRCPACPAL = 0 then DisQty else Round(nvl(DisQty, Delprice.Delprcqty) / PRCPACPAL, 2) end Rndpals,   
+       Case When Prcpacpal = 0 Then nvl(DisQty, Delprice.Delprcqty) Else Ceil(Round( nvl(DisQty, Delprice.Delprcqty) / Prcpacpal, 2)) End Actpals,   
+       (Select Count(Pallocrecno) From Paltodel Where Pallocdelrecno  = Deldet.Delrecno) Paltodelcount,   
+	   Nvl(Case when Deltoist.DisQty is null 
+	   			then Deldet.Rndapportpals 
+				else (Case When Nvl(Deltoist.DisQty,0) = 0 
+					 	   then 0 
+						   else Nvl(RndApportPals,0) / (DisQty * (1.00)) 
+						   end) 
+		 end  
+	   ,Case When Prcpacpal = 0 Then nvl(DisQty, Delprice.Delprcqty) Else Round(nvl(DisQty, Delprice.Delprcqty) / Prcpacpal, 2) End) Rndapportpals,  
+        NVL(DELTOIST.DISQTY, DELPRICE.DELPRCQTY) AS DISSTKQTY,	   
+       Delqty, Delprice.Delprcqty, nvl(Deltoist.DisNettValue,Delprice.Delnettvalue) Delnettvalue, Exccharec, Excrawamm, Excconamm, Exctoeuroexcrate,exctobaserate,excapptype, Excctyno, Excchgcalc, Exccurrno,
 	   Case When NVL(Exccurrno,1) = 1
 	   		then
 		       Nvl(Excconamm,0) - Nvl((Select Sum(Nvl(Ichappamt,0))
@@ -26,10 +35,10 @@ create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
 			   Nvl(Excrawamm,0) - Nvl((Select Sum(Nvl(Ichrawappamt,0))
 					                    from Itechg
 					                    where (Itechg.Ichspeto Is Not Null Or Ichistrecno Is Null)
-					                    and Expcha.Exccharec = Itechg.Excrecno),0)
-			end Tottoapp,
-          Chgtyp.Ctydesc, Nvl(Chgtyp.Chgignorecrdr, 0) Chgignorecrdr, Deldet.Rndapportpals,
-     nvl(Deltoist.Disstkqty, Delprice.Delprcqty) As Disstkqty,
+					                    AND EXPCHA.EXCCHAREC = ITECHG.EXCRECNO),0)
+			END TOTTOAPP,
+          CHGTYP.CTYDESC, NVL(CHGTYP.CHGIGNORECRDR, 0) CHGIGNORECRDR,
+
      Nvl(Deltoist.Disistrecno, (Select Min(Pallocistrecno) From Palnoloc, Deltoall Where Deltoall.Dalallocno = Palnoloc.Pallocallno And Dalrecordtype = 1 And Daltyperecno = Deldet.Delrecno)) SubDisistrecno
     from Deldet, Delprice, Prdrec, Expcha, Chgtyp, Deltoist
     where Deldet.Delprcprdno = Prdrec.Prcprdno
@@ -46,8 +55,8 @@ create or replace PACKAGE BODY FT_PK_SALES_COSTS AS
                And Itechg.Ichspeto Is Not Null
                And Itechg.Ichistrecno  = Temp.SubDisistrecno
                And Itechg.Dprrecno = Temp.Dprrecno)
-     Order By Delrecno, Dprrecno; 
-	 
+     Order By Delrecno, Dprrecno;
+
 CURSOR TC_DELAUDRESULTSET(IN_DLVORDNO INTEGER, IN_EXCRECNO INTEGER) IS
   Select Itechg.Ichrecno, Excrecno, Itechg.Dprrecno, Ctyno, Ichappamt, Delprice.Dprdelrecno Delrecno
   From Itechg, Expcha, Delprice
@@ -79,7 +88,7 @@ PROCEDURE LOTITEAPPORTION_DELPRICE(IN_DLVORDNO IN NUMBER, IN_EXCRECNO IN NUMBER)
   DlvIsDlvd           NUMBER;
   SQLStr      				VARCHAR(32675);
 
-  DTISel VARCHAR(200);
+  DTISel VARCHAR(4000);
   DTITab VARCHAR(200);
   DTILNK VARCHAR(200);
   DTISubLink VARCHAR(200);
@@ -163,55 +172,52 @@ BEGIN
     END;
   END IF;
 
+ -- TODO  LCheckIteChgIgnoreCrDr(Sttmp) << Actually not currently used (in this proc at least)
+
+  IF V_CONT = 1 THEN
+    IF DlvIsDlvd = 1 THEN
+      --link in deltoist as actual weight may be different
+      DTISEL := '  SUM(Case When DelPricePer = 2 then DelNettweight * DisQty else PrcWeight * DisQty end) WeightTot_DLVD, SUM(DisQty) DelQtyTot, '||
+                '   Sum(Case When PRCPACPAL = 0 then DisQty else Round(DisQty / PRCPACPAL, 2) end) RndPalsTot,' ||
+                '   NVL(Sum(Disnettvalue), 0) DelNettValueTot,  ' ||
+                ' NVL(Sum(Case When Nvl(DisQty,0) = 0 then 0 else Nvl(RndApportPals,0) / (DisQty * (1.00))  end), Sum(Case When PRCPACPAL = 0 then DisQty else Round(DisQty / PRCPACPAL, 2) end)) TotRndApportPals, ';
+                
+      DTITab := ', DelToIst';
+      DTILNK := ' And DelPrice.DprRecNo = deltoist.DisDprRecNo(+)';
+      DTISubLink := ' And Itechg.Ichistrecno = DelToIst.DisIstRecNo';
+    ELSE
+      DTISEL := ' NULL as WeightTot_DLVD, SUM(DelPrcQty) DelQtyTot, ' ||
+                ' Sum(Case When PRCPACPAL = 0 then Delprcqty else Round(Delprcqty / PRCPACPAL, 2) end) RndPalsTot,' ||
+                ' NVL(Sum(DelNettValue), 0) DelNettValueTot,  ' ||
+                ' NVL(Sum(RndApportPals), Sum(Case When PRCPACPAL = 0 then Delprcqty else Round(Delprcqty / PRCPACPAL, 2) end)) TotRndApportPals, ' ;
+      DTITab := '';
+      DTILNK := '';
+      DTISubLink := '';
+    END IF;
+  END IF;
+
 --***** (1) Determine the Apportionment ******************************
 
   IF V_CONT = 1 THEN
     BEGIN
-		 SQLStr := 'Select ExcCtyNo, SUM((Case When DelPricePer = 2 then DelNettweight * DelQty else PrcWeight * DelQty end)) WeightTot_ALLOC, SUM(NVL(Disstkqty,0)) DelQtyTot,' ||
-		 'Sum(Case When PRCPACPAL = 0 then delQty else Round(delQty / PRCPACPAL, 2) end) RndPalsTot,' ||
-		 'EXCAPPTYPE, Max(DELINVSTATUS) as MAX_DELINVSTATUS, ' ||
-		 'NVL(Sum(DelNettValue), 0) DelNettValueTot, ' ||
-		 'NVL(Sum(RndApportPals),  Sum(Case When PRCPACPAL = 0 then delQty else Round(delQty / PRCPACPAL, 2) end)) TotRndApportPals ' ||
-		'from ' || 
-		'(Select Delrecno, Delprice.Dprrecno, Delqtyper, Prcweight, Prcboxqty, Innerqty,DELINVSTATUS,PRCPACPAL,DelNettweight, DelPricePer, ' ||
-		'       (Case When Delpriceper = 2 Then Delnettweight * Delprcqty Else Prcweight * Delprcqty End) Weight_Alloc, ' ||
-		'       (Case When Delpriceper = 2 Then Delnettweight * Disqty Else Prcweight * Disqty End) Weight_Dlvd, ' ||
-		'       Case When Prcpacpal = 0 Then Delprcqty Else Round(Delqty / Prcpacpal, 2) End Rndpals, ' ||
-		'       Case When Prcpacpal = 0 Then Delprcqty Else Ceil(Round(Delqty / Prcpacpal, 2)) End Actpals, ' ||
-		'       (Select Count(Pallocrecno) From Paltodel Where Pallocdelrecno  = Deldet.Delrecno) Paltodelcount, ' ||
-		'       Delqty, Delprice.Delprcqty, Delprice.Delnettvalue, Exccharec, Excrawamm, Excconamm, Exctoeuroexcrate,exctobaserate,excapptype, Excctyno, Excchgcalc, Exccurrno,' ||
-		'	   Case When NVL(Exccurrno,1) = 1 ' ||
-		'	   		then ' ||
-		'		       Nvl(Excconamm,0) - Nvl((Select Sum(Nvl(Ichappamt,0)) ' ||
-		'					                    from Itechg ' ||
-		'					                    where (Itechg.Ichspeto Is Not Null Or Ichistrecno Is Null) ' ||
-		'					                    and Expcha.Exccharec = Itechg.Excrecno),0) ' ||
-		'			else ' ||
-		'			   Nvl(Excrawamm,0) - Nvl((Select Sum(Nvl(Ichrawappamt,0)) ' ||
-		'					                    from Itechg ' ||
-		'					                    where (Itechg.Ichspeto Is Not Null Or Ichistrecno Is Null) ' ||
-		'					                    and Expcha.Exccharec = Itechg.Excrecno),0) ' ||
-		'			end Tottoapp, ' ||
-		'          Chgtyp.Ctydesc, Nvl(Chgtyp.Chgignorecrdr, 0) Chgignorecrdr, Deldet.Rndapportpals, ' ||
-		'     nvl(Deltoist.Disstkqty, Delprice.Delprcqty) As Disstkqty, ' ||
-		'	 EXCCHAPERRATE, ' ||
-		'     Nvl(Deltoist.Disistrecno, (Select Min(Pallocistrecno) From Palnoloc, Deltoall Where Deltoall.Dalallocno = Palnoloc.Pallocallno And Dalrecordtype = 1 And Daltyperecno = Deldet.Delrecno)) SubDisistrecno ' ||
-		'    from Deldet, Delprice, Prdrec, Expcha, Chgtyp, Deltoist ' ||
-		'    where Deldet.Delprcprdno = Prdrec.Prcprdno ' ||
-		'    and Delprice.Dprdelrecno = Deldet.Delrecno ' ||
-		'    and Deldet.Deldlvordno =  ' || IN_DLVORDNO  ||
-		'    and Expcha.Excdlvordno = Deldet.Deldlvordno
-		'    and Expcha.Exccharec =   ' || IN_EXCRECNO  ||
-		'	And DelPrice.DelPrcQty <> 0 ' ||
-		'    and Delprice.Dprrecno = Deltoist.Disdprrecno(+) ' ||
-		'    and Expcha.Excctyno = Chgtyp.Ctyno) Temp ' ||
-		'    Where Not Exists (Select * ' ||
-		'               From Itechg ' ||
-		'               Where Itechg.Excrecno = Temp.Exccharec ' ||
-		'               And Itechg.Ichspeto Is Not Null ' ||
-		'               And Itechg.Ichistrecno  = Temp.SubDisistrecno ' ||
-		'               And Itechg.Dprrecno = Temp.Dprrecno) ' ||
-		'     group by ExcCtyNo, ExcChaRec, ExcRawAmm, ExcConAmm, EXCTOEUROEXCRATE,EXCTOBASERATE,EXCAPPTYPE, EXCCHAPERRATE ' ||
+	    SQLSTR := 'Select ExcCtyNo, SUM((Case When DelPricePer = 2 then DelNettweight * DelQty else PrcWeight * DelQty end)) WeightTot_ALLOC, ' || DTISEL ||
+        ' EXCAPPTYPE, Max(DelPrice.DELINVSTATUS) as MAX_DELINVSTATUS' ||
+        ' From DelDet, DelPrice, PrdRec, Expcha' || DTITab ||
+        ' Where Deldet.delprcprdno = PrdRec.prcprdno' ||
+        ' AND DelPrice.DprDelrecNo = DelDet.DelrecNo' ||
+        ' And Deldet.DelDlvOrdNo = ' || IN_DLVORDNO ||
+        ' And Expcha.ExcDlvORdNo = ' || IN_DLVORDNO ||
+        ' And Expcha.ExcChaRec = ' || IN_EXCRECNO ||
+        ' And Not Exists (Select *' ||
+        '				 	        From IteChg' ||
+        '					        Where IteChg.ExcRecNo = ExpCha.ExcChaRec' ||
+        '					        And IteChg.ICHSPETO IS NOT NULL' ||
+        '                 And Itechg.Ichistrecno Is Not Null' ||
+        DTISubLink ||
+        '					        And IteChg.DPRRECNO = Delprice.DprRecNo) ' ||
+        DTILnk ||
+        ' And Deldet.DelQty > 0 ' ||
+        ' group by ExcCtyNo, ExcChaRec, ExcRawAmm, ExcConAmm, EXCTOEUROEXCRATE,EXCTOBASERATE,EXCAPPTYPE, EXCCHAPERRATE';
 
       BEGIN
         --For a potentially 'better' way of handling dynamic SQL see FT_PK_COST_WRITES.INSERT_ITECHG BIND_VAR
@@ -222,10 +228,10 @@ BEGIN
                                   FWeightTot_DLVD,
                                   IDelQtyTot,
                                   IRndPalsTot,
+                                  FDELNETTVALUETOT,
+                                  FTOTRNDAPPORTPALS,
                                   IEXCAPPTYPE,
-                                  IMAX_DELINVSTATUS,
-                                  FDelNettValueTot,
-                                  FTotRndApportPals;
+                                  IMAX_DELINVSTATUS;
 
             EXIT WHEN RefCursorVar%NOTFOUND;
 
@@ -384,7 +390,7 @@ BEGIN
         --Get the Itechg
         FoundIte := False;
         V_IchRecNo := NULL;
-        If DlvToExp_REC.DisIstRecNo > 0 Then
+        If DlvToExp_REC.SubDisistrecno > 0 Then
           BEGIN
             Select IchRecNo, IchSpeTo, IchAppAmt
             INTO  V_IchRecNo, V_IchSpeTo, V_IchAppAmt
