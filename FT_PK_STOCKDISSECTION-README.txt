@@ -18,6 +18,19 @@
  ****  	Original Log Number: 	
 
 DISSECTDELIVERY  
+
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.3
+ ****  	Body Version 1.0.8
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     21/10/2015      		
+ ****  	Last Modified Log:    	
+ ****  	Change Made:          
+	(1)	Noticed that this does not use the ALLOCATESPLITS table so changed it so that it will 
+
+
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.3
  ****  	Body Version 1.0.7
