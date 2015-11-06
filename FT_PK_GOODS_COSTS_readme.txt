@@ -20,8 +20,19 @@
 ****  	Written by Paul Michael Thomas
 ****  	Date: Jan 2015                        
 ****  	Original Log Number: 7510                
-****  
+**** 
 *********************************************************************************
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
+	Body Version 1.0.3
+
+	Modified by: Arshad Din
+	Modified on: 06/11/2015      	
+	Modified Log: 15007
+	Changes Made:      
+	1) Added additional condition on the Main Goodscost query to include re-opened PO's.
 
 *********************************************************************************	                                        
 
