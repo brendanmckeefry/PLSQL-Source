@@ -1,7 +1,7 @@
 SET DEFINE OFF;
     CREATE OR REPLACE PACKAGE BODY FT_PK_STOCKDISSECTION
     AS
-      cVersionControlNo   VARCHAR2(12) := '1.0.8'; -- Current Version Number
+      cVersionControlNo   VARCHAR2(12) := '1.0.9'; -- Current Version Number
 
       --VARIABLES FOR OVER SOLD DETAILS
       GLBALLOCNO                    NUMBER(10)        :=0;
@@ -2269,7 +2269,7 @@ SET DEFINE OFF;
             END;
         END IF;
 
-        -- ENSURE DELHED IS NOT ALREADY DISSECTED OR IS not at blank or picked status, OR IS A TRANSHIPMENT, TRANSFER, INTERDEPARTMENT LINE
+        -- ENSURE DELHED IS NOT ALREADY DISSECTED OR IS not at blank or picked status, OR IS A TRANSHIPMENT, TRANSFER, INTERDEPARTMENT LINE & is a market sale
         IF VAR_NOOFERRS = 0 THEN
             BEGIN
               SELECT COUNT(*) NOOF INTO VAR_NOOFERRS FROM DELHED WHERE DLVORDNO = V_DLVORDNO
@@ -2282,7 +2282,10 @@ SET DEFINE OFF;
               OR
               TRANSFERFLG IS NOT NULL
               OR
-              INTERDEPTFLAG IS NOT NULL)
+              INTERDEPTFLAG IS NOT NULL
+	      OR 
+	      NVL(DLVISMKTSALE, 0)  =0
+	      )
               ;
             EXCEPTION
                 WHEN NO_DATA_FOUND THEN

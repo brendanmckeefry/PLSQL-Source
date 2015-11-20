@@ -19,6 +19,21 @@
 
 DISSECTDELIVERY  
 
+
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.3
+ ****  	Body Version 1.0.9
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     20/11/2015      		
+ ****  	Last Modified Log:    15404	
+ ****  	Change Made:          
+	(1)	Was allowing none market sales to be dissected in DISSECTDELIVERY  proc
+		NVL(DLVISMKTSALE, 0)  =0
+
+	      
+
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.3
  ****  	Body Version 1.0.8
