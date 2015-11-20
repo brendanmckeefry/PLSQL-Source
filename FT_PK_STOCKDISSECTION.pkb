@@ -2275,7 +2275,7 @@ SET DEFINE OFF;
               SELECT COUNT(*) NOOF INTO VAR_NOOFERRS FROM DELHED WHERE DLVORDNO = V_DLVORDNO
               AND
               (ISOPENFORMORE = 2
-              OR
+              OR              
               NVL(DLVRELINV, '***') NOT IN ('***', 'Pik')
               OR
               DLVTRANSSHIP IS NOT NULL
@@ -2283,9 +2283,9 @@ SET DEFINE OFF;
               TRANSFERFLG IS NOT NULL
               OR
               INTERDEPTFLAG IS NOT NULL
-	      OR 
-	      NVL(DLVISMKTSALE, 0)  =0
-	      )
+              OR
+              NVL(DLVISMKTSALE, 0) = 0
+              )
               ;
             EXCEPTION
                 WHEN NO_DATA_FOUND THEN
@@ -2474,3 +2474,4 @@ SET DEFINE OFF;
 
 
     END FT_PK_STOCKDISSECTION;
+/
