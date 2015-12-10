@@ -1,6 +1,6 @@
 create or replace PACKAGE BODY FT_PK_SALES AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.3'; -- Current Version Number
 
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
@@ -22,33 +22,10 @@ create or replace PACKAGE BODY FT_PK_SALES AS
     IF V_CONT =1 THEN
     BEGIN
         UPDATE DELPRICE
-        SET DELNETTVALUE =
-            (
-            CASE WHEN NVL(DELFREEOFCHG,0) = 1
-            THEN
-                NULL
-            ELSE
-                ROUND(
-                    (CASE WHEN
-                        (SELECT NVL(DELPRICEPER,0) FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO) = 1
-                        OR
-                        (SELECT NVL(DELPRICEPER,0) -  NVL(DELQTYPER,0) FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO) = 0 -- IF THE PRICE PER AND SELL PER ARE THE SAME WE DO NOT USE THE MULTIPLER AS THE DELPRCQTY IS THE QTY
-                    THEN
-                        (NVL(DELPRCQTY,0) * NVL(DELPRICE,0))
-                    ELSE
-                        (CASE WHEN
-                            (SELECT NVL(DELPRICEPER,0) FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO) = 2
-                            AND
-                            ABS(NVL(DELPRCWEIGHT,0)) > 0.009
-                        THEN
-                            (NVL(DELPRICE,0) * NVL(DELPRCWEIGHT,0)) -- ; this was introduced by ash for sites that wanted to do returns at a different weight than the original line
-                        ELSE
-                            (NVL(DELPRICE,0) * NVL(DELPRCQTY,0)  * NVL((SELECT DELNETTWEIGHT FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO),0))
-                        END)
-                    END)
-                ,2)
-            END)
-            WHERE DPRRECNO = IN_DPRRECNO;
+        SET DELNETTVALUE = DELPRICE_CALCNETTVALUE(DELPRICE.DPRRECNO)
+            WHERE DPRRECNO = IN_DPRRECNO
+            AND NVL(DELINVSTATUS,0) < 10   -- not invoiced 
+            ;
             COMMIT;
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
@@ -92,6 +69,70 @@ create or replace PACKAGE BODY FT_PK_SALES AS
 
   END DELPRICE_NETTVALUE;
 
+  
+  FUNCTION DELPRICE_CALCNETTVALUE(IN_DPRRECNO IN NUMBER) RETURN DELPRICE.DELNETTVALUE%TYPE AS
+  PRAGMA AUTONOMOUS_TRANSACTION;      
+    V_CONT              NUMBER(1) := 1;
+    V_DELNETTVALUE      DELPRICE.DELNETTVALUE%TYPE NULL;
+     
+  BEGIN
+
+    IF V_CONT =1 THEN
+    BEGIN
+        SELECT           
+            (
+            CASE WHEN NVL(DELFREEOFCHG,0) = 1
+            THEN
+                NULL
+            ELSE
+                ROUND(
+                    (CASE WHEN (NVL(DPRISPRICEADJONLY, 0) <> 0)                    
+                    THEN
+                        (CASE WHEN (NVL(ADJBY, 0) > 1)
+                        THEN
+                            (NVL(DELPRCWEIGHT,0) * NVL(DELPRICE,0))
+                         ELSE
+                            (NVL(DELPRCQTY,0) * NVL(DELPRICE,0))
+                         END)                         
+                    ELSE                
+                        (CASE WHEN
+                            (SELECT NVL(DELPRICEPER,0) FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO) = 1
+                            OR 
+                            (SELECT NVL(DELPRICEPER,0) -  NVL(DELQTYPER,0) FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO) = 0 -- IF THE PRICE PER AND SELL PER ARE THE SAME WE DO NOT USE THE MULTIPLER AS THE DELPRCQTY IS THE QTY                            
+                        THEN
+                            (NVL(DELPRCQTY,0) * NVL(DELPRICE,0))
+                        ELSE
+                            (CASE WHEN
+                                (SELECT NVL(DELPRICEPER,0) FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO) = 2
+                                AND
+                                ABS(NVL(DELPRCWEIGHT,0)) > 0.009
+                            THEN
+                                (NVL(DELPRICE,0) * NVL(DELPRCWEIGHT,0)) -- ; this was introduced by ash for sites that wanted to do returns at a different weight than the original line
+                            ELSE
+                                (NVL(DELPRICE,0) * NVL(DELPRCQTY,0)  * NVL((SELECT DELNETTWEIGHT FROM DELDET WHERE DELDET.DELRECNO = DELPRICE.DPRDELRECNO),0))
+                            END)
+                        END)
+                    END)
+                ,2)
+            END)
+            INTO V_DELNETTVALUE 
+            FROM DELPRICE 
+            WHERE DPRRECNO = IN_DPRRECNO;
+        EXCEPTION              
+            WHEN NO_DATA_FOUND THEN
+                NULL;                                                 
+            WHEN OTHERS THEN
+                NULL;                
+                RAISE_APPLICATION_ERROR(-20002, 'ORACLE PACKAGE -BSDL_PK_SALES - DELPRICE_CALCNETTVALUE() - VALUE' ||CHR(13) || CHR(10) || SQLCODE || CHR(13) || CHR(10) || SQLERRM);
+                            
+        END;
+     
+    END IF;
+    
+    RETURN V_DELNETTVALUE    ;        
+           
+    
+  END DELPRICE_CALCNETTVALUE;
 
   PROCEDURE DELPRICE_CALCVATFIGURES(IN_DPRRECNO IN NUMBER) AS
         V_CONT          NUMBER(1) := 1;

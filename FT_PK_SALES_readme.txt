@@ -25,6 +25,18 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.3
+	Body Version 1.0.3
+
+	Modified by: Brendan McKeefry
+	Modified on: 10/12/2015      	
+	Modified Log: 14298 	
+	Changes Made:      
+	1) Split DELPRICE_NETTVALUE into sub method DELPRICE_CALCNETTVALUE so that it just returns the Nett Value
+
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.2
 	Body Version 1.0.2
 
