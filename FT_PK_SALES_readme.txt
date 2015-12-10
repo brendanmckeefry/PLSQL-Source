@@ -25,6 +25,24 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.2
+	Body Version 1.0.2
+
+	Modified by: Brendan McKeefry
+	Modified on: 04/09/2015      	
+	Modified Log: 14965	
+	Changes Made:      
+
+		Work was done to replace the writing of AUTOCOSTTODOS & DISCOUNTS in the UTILITY library
+		Procedure where added to this package that can be called as a timed job to do the same work
+
+	added methods  PROCEDURE PROCESS_DELAUDIT_FORAUTOCOST;
+        	       PROCEDURE GET_DELAUDIT_FORAUTOCOST
+
+*********************************************************************************	                                        
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.1
 	Body Version 1.0.1
 
