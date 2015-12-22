@@ -25,8 +25,17 @@
 
 *********************************************************************************	                                        
 
-	Version 1.0.1
+	Version 1.0.2
   	
+
+	Modified by: Brendan Mckeefry
+	Modified on: 22/12/2015      	
+	Modified Log: 
+	Changes Made:      
+	1) LIne 387 & LIne 393 - added EXCRECNO to the error message to see if it helps to find the issue
+*********************************************************************************	                                        
+
+	Version 1.0.1  	
 
 	Modified by: Steve Rimen
 	Modified on: 24/03/2015      	
