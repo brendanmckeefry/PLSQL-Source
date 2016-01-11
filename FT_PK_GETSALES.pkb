@@ -1,6 +1,6 @@
 create or replace PACKAGE BODY FT_PK_GETSALES AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.7'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.8'; -- Current Version Number
   
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
   IS
@@ -686,14 +686,20 @@ create or replace PACKAGE BODY FT_PK_GETSALES AS
                           AND CHECKIT.DTLWORECNO  = PREPSALESREC.PALOUTWORECNO);
                                             
           COMMIT;
-          
-          SELECT DTLRECNO INTO DPRTOLOTSKEY 
-          FROM DPRSTOLOTS 
-          WHERE  DPRSTOLOTS.DTLDPRRECNO = PREPSALESREC.DPRRECNO 
+         
+          BEGIN 
+            SELECT DTLRECNO INTO DPRTOLOTSKEY 
+            FROM DPRSTOLOTS 
+            WHERE  DPRSTOLOTS.DTLDPRRECNO = PREPSALESREC.DPRRECNO 
             AND DPRSTOLOTS.DTLLITITENO = PREPSALESREC.ISTLITNO 
             AND DPRSTOLOTS.DTLWORECNO  = PREPSALESREC.PALOUTWORECNO;
-                                     
-          DPRTOLOTSKEYDYNARR(COUNTSI) := DPRTOLOTSKEY;
+                               
+            DPRTOLOTSKEYDYNARR(COUNTSI) := DPRTOLOTSKEY;
+          EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+              NULL; --ignore if data not found
+          END;
+                       
         EXCEPTION
           WHEN DUP_VAL_ON_INDEX THEN
             NULL; --Ignore for small proportion of duplicates          
