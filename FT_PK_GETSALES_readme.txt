@@ -22,7 +22,20 @@
 ****  	Original Log Number: 7510                
 ****  
 *********************************************************************************
+*********************************************************************************	                                        
 
+	Spec Version 1.0.3
+	Body Version 1.0.7
+
+	Modified by: Arshad Din
+	Modified on: 11/01/2015      	
+	Modified Log: 13902
+	Changes Made:      
+	1) Exception block added to trap the data not found error for the select into statement.
+	   See lines 690 - 701
+
+
+*********************************************************************************
 *********************************************************************************	                                        
 
 	Spec Version 1.0.3
