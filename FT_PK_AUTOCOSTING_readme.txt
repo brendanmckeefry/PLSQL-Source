@@ -23,6 +23,17 @@
 ****  
 *********************************************************************************
 
+*********************************************************************************	                                        
+
+	Spec Version 1.0.2
+	Body Version 1.0.4
+
+	Modified by: Brendan McKeefry
+	Modified on: 11/01/2015      	
+	Modified Log: 15697
+	Changes Made:      
+	1) SET_IN_PROGRESS did not check to see if there was alrady any records in the AUTOCOSTSTODO table for my session - G_SID
+	  this meant that if a session had an error it just added another batch to teh existing lot and chances where they would get an error too.
 
 *********************************************************************************	                                        
 
