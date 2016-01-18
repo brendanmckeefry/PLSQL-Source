@@ -261,6 +261,12 @@ BEGIN
              --RAISE_APPLICATION_ERROR(-20002, 'ORACLE PACKAGE -FT_PK_SALES_COSTS - LOTITEAPPORTION_DELPRICE() - RefCursorVar' ||CHR(13) || CHR(10) || SQLCODE || CHR(13) || CHR(10) || SQLERRM);
              V_CONT := 0;
       END;
+      
+      IF V_CONT = 1 THEN
+        IF EXCCTYNO IS NULL THEN  -- NO EXPCHA FOUND
+          V_CONT := 0;
+        END IF;
+      END IF;
 
       if V_CONT = 1 Then
         if IEXCAPPTYPE = CONST.C_APP_BOX THEN
