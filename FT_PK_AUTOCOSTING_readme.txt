@@ -25,6 +25,18 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.3
+	Body Version 1.0.5
+
+	Modified by: Brendan McKeefry
+	Modified on: 19/01/2015      	
+	Modified Log: 15697
+	Changes Made:      
+	1) Added New methods ENQUEUE_LIT & ENQUEUE_DPR to record FORMNO
+
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.2
 	Body Version 1.0.4
 

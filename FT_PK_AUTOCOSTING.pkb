@@ -1,6 +1,6 @@
 CREATE OR REPLACE PACKAGE BODY FT_PK_AUTOCOSTING AS
   
-  cVersionControlNo   VARCHAR2(12) := '1.0.4'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.5'; -- Current Version Number
   
   PROCESSTODO     INTEGER := 1;
   PROCESSINPROG   INTEGER := 2;
