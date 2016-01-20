@@ -25,6 +25,16 @@
 
 *********************************************************************************	                                       
 
+	Spec Version 1.0.4                          
+
+	Modified by: Brendan McKeefry
+	Modified on: 19/01/2015      	
+	Modified Log: 
+	Changes Made:      
+	1) Changed to write the deleting SessionAudSid to the AUTOCOSTSAUDIT.SessionNO  - this way i can trace what session processed the records
+
+*********************************************************************************	                                       
+
 	Spec Version 1.0.3                           
 
 	Modified by: Brendan McKeefry
