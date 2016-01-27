@@ -25,6 +25,18 @@
 
 *********************************************************************************	                                        
 
+	Spec Version 1.0.4
+	Body Version 1.0.6
+
+	Modified by: Brendan McKeefry
+	Modified on: 27/01/2015      	
+	Modified Log: 
+	Changes Made:      
+	1) Added New methods ENQUEUE_DPRRECS_AA to take FORMNO 
+
+
+*********************************************************************************	                                        
+
 	Spec Version 1.0.3
 	Body Version 1.0.5
 
