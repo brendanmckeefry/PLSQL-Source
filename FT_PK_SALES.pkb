@@ -1,6 +1,6 @@
 create or replace PACKAGE BODY FT_PK_SALES AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.3'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.5'; -- Current Version Number
 
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
@@ -488,7 +488,12 @@ create or replace PACKAGE BODY FT_PK_SALES AS
                    DelAudType = "22" OR ;CREATE NEW stock credit note
                    DelAudType = "23")  */
           IF DELAUDIT_TODO_RECORD.DODISCOUNT = 1 THEN
-            FT_PK_DISCOUNTS.DO_DISCOUNTS(DELAUDIT_TODO_RECORD.DPRRECNO);
+            BEGIN
+              FT_PK_DISCOUNTS.DO_DISCOUNTS(DELAUDIT_TODO_RECORD.DPRRECNO);
+            EXCEPTION
+              WHEN OTHERS THEN
+              FT_PK_ERRORS.LOG_AND_CONTINUE;      
+            END;    
           END IF;       
           
           END LOOP; 
