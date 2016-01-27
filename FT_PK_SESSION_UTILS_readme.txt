@@ -23,6 +23,18 @@
 ****  
 *********************************************************************************
 
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
+  	Body Version 1.0.2                             
+
+	Modified by: Brendan McKeefry
+	Modified on: 27/01/2016      	
+	Modified Log: 15634
+	Changes Made:      
+	1) Changed the GET_FT_LOGONNO to get the LOGONNO using the AUDSID and the USERSESSNOLOG
+
 *********************************************************************************	                                        
 
 	Spec Version 1.0.1
