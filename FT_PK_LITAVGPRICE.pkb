@@ -18,7 +18,7 @@ PROCEDURE UPDATEACTIVELOTS IS
                 FETCH ACTIVELOTS_CURSOR INTO  ACTIVELOTSRECORD;
                 EXIT WHEN ACTIVELOTS_CURSOR%NOTFOUND;
                     BEGIN
-                        UPDATE LOTITE SET AVGGROSSPRC = BSDL_PK_LITAVGPRICE.LITAVGPRICE_MAIN(LITITENO, 0)
+                        UPDATE LOTITE SET AVGGROSSPRC = FT_PK_LITAVGPRICE.LITAVGPRICE_MAIN(LITITENO, 0)
                         WHERE LITITENO = ACTIVELOTSRECORD.ALLOCLITITENO;
                         COMMIT;
                     EXCEPTION             
@@ -26,8 +26,8 @@ PROCEDURE UPDATEACTIVELOTS IS
                             NULL;                                                 
                         WHEN OTHERS THEN
                             NULL;
-                            RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - UPDATEACTIVELOTS() '); 
-                        
+                            --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - UPDATEACTIVELOTS() '); 
+                            FT_PK_ERRORS.LOG_AND_STOP;                        
                     END;
             END LOOP;
             CLOSE ACTIVELOTS_CURSOR;
@@ -171,10 +171,10 @@ PROCEDURE LITAVGPRICE_DELTOALL(V_LITRECNO IN NUMBER, OUT_VALUE OUT  FLOAT, OUT_Q
                             IF  IS_NETT = 1 THEN
                             BEGIN                           
                                 V_DD_VALUE := V_DD_VALUE 
-                                        -  BSDL_PK_LITAVGPRICE.RET_REBATE_APP( DELTOALLDETS_RECORD.DELRECNO, NULL, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY)
-                                        -    BSDL_PK_LITAVGPRICE.RET_DISC_APP( DELTOALLDETS_RECORD.DELRECNO, NULL, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY)
-                                        - BSDL_PK_LITAVGPRICE.RET_OTHCHGS_APP( DELTOALLDETS_RECORD.DELRECNO, NULL, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY)
-                                        - BSDL_PK_LITAVGPRICE.RET_OTHCHGS_APP_DD( DELTOALLDETS_RECORD.DELRECNO, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY);
+                                        -  FT_PK_LITAVGPRICE.RET_REBATE_APP( DELTOALLDETS_RECORD.DELRECNO, NULL, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY)
+                                        -    FT_PK_LITAVGPRICE.RET_DISC_APP( DELTOALLDETS_RECORD.DELRECNO, NULL, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY)
+                                        - FT_PK_LITAVGPRICE.RET_OTHCHGS_APP( DELTOALLDETS_RECORD.DELRECNO, NULL, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY)
+                                        - FT_PK_LITAVGPRICE.RET_OTHCHGS_APP_DD( DELTOALLDETS_RECORD.DELRECNO, DELTOALLDETS_RECORD.DELQTY, DELTOALLDETS_RECORD.QTY);
                             END;
                             END IF;
                                         
@@ -292,10 +292,10 @@ PROCEDURE LITAVGPRICE_DELDET_PO(V_LITRECNO IN NUMBER, OUT_VALUE OUT  FLOAT, OUT_
                                 IF DELDETDETS_RECORD.CLAACCCSTSUP <> 3 THEN
                                 BEGIN
                                     V_DD_VALUE := V_DD_VALUE 
-                                            -  BSDL_PK_LITAVGPRICE.RET_REBATE_APP( NULL, DELDETDETS_RECORD.DPRRECNO, DELDETDETS_RECORD.DELPRCQTY, DELDETDETS_RECORD.DISSTKQTY)
-                                            -  BSDL_PK_LITAVGPRICE.RET_DISC_APP(   NULL, DELDETDETS_RECORD.DPRRECNO, DELDETDETS_RECORD.DELPRCQTY, DELDETDETS_RECORD.DISSTKQTY)
-                                            -  BSDL_PK_LITAVGPRICE.RET_OTHCHGS_APP( NULL, DELDETDETS_RECORD.DPRRECNO, DELDETDETS_RECORD.DELPRCQTY, DELDETDETS_RECORD.DISSTKQTY)
-                                            -  BSDL_PK_LITAVGPRICE.RET_OTHCHGS_APP_DD( DELDETDETS_RECORD.DELRECNO, DELDETDETS_RECORD.DELQTY, DELDETDETS_RECORD.DISSTKQTY);
+                                            -  FT_PK_LITAVGPRICE.RET_REBATE_APP( NULL, DELDETDETS_RECORD.DPRRECNO, DELDETDETS_RECORD.DELPRCQTY, DELDETDETS_RECORD.DISSTKQTY)
+                                            -  FT_PK_LITAVGPRICE.RET_DISC_APP(   NULL, DELDETDETS_RECORD.DPRRECNO, DELDETDETS_RECORD.DELPRCQTY, DELDETDETS_RECORD.DISSTKQTY)
+                                            -  FT_PK_LITAVGPRICE.RET_OTHCHGS_APP( NULL, DELDETDETS_RECORD.DPRRECNO, DELDETDETS_RECORD.DELPRCQTY, DELDETDETS_RECORD.DISSTKQTY)
+                                            -  FT_PK_LITAVGPRICE.RET_OTHCHGS_APP_DD( DELDETDETS_RECORD.DELRECNO, DELDETDETS_RECORD.DELQTY, DELDETDETS_RECORD.DISSTKQTY);
                                 END;
                                 END IF;
                             END IF;
@@ -418,10 +418,10 @@ PROCEDURE LITAVGPRICE_DELDET_WO(V_LITRECNO IN NUMBER, OUT_VALUE OUT  FLOAT, OUT_
                                 IF PP_DELDETDETS_RECORD.CLAACCCSTSUP <> 3 THEN
                                 BEGIN
                                     V_PP_DD_VALUE := V_PP_DD_VALUE 
-                                        -  BSDL_PK_LITAVGPRICE.RET_REBATE_APP(  NULL, PP_DELDETDETS_RECORD.DPRRECNO, PP_DELDETDETS_RECORD.DELPRCQTY, PP_DELDETDETS_RECORD.DPRQTYTHIS)
-                                        -  BSDL_PK_LITAVGPRICE.RET_DISC_APP(    NULL, PP_DELDETDETS_RECORD.DPRRECNO, PP_DELDETDETS_RECORD.DELPRCQTY, PP_DELDETDETS_RECORD.DPRQTYTHIS)
-                                        -  BSDL_PK_LITAVGPRICE.RET_OTHCHGS_APP( NULL, PP_DELDETDETS_RECORD.DPRRECNO, PP_DELDETDETS_RECORD.DELPRCQTY, PP_DELDETDETS_RECORD.DPRQTYTHIS)
-                                        -  BSDL_PK_LITAVGPRICE.RET_OTHCHGS_APP_DD(    PP_DELDETDETS_RECORD.DELRECNO, PP_DELDETDETS_RECORD.DELQTY,    PP_DELDETDETS_RECORD.DPRQTYTHIS);
+                                        -  FT_PK_LITAVGPRICE.RET_REBATE_APP(  NULL, PP_DELDETDETS_RECORD.DPRRECNO, PP_DELDETDETS_RECORD.DELPRCQTY, PP_DELDETDETS_RECORD.DPRQTYTHIS)
+                                        -  FT_PK_LITAVGPRICE.RET_DISC_APP(    NULL, PP_DELDETDETS_RECORD.DPRRECNO, PP_DELDETDETS_RECORD.DELPRCQTY, PP_DELDETDETS_RECORD.DPRQTYTHIS)
+                                        -  FT_PK_LITAVGPRICE.RET_OTHCHGS_APP( NULL, PP_DELDETDETS_RECORD.DPRRECNO, PP_DELDETDETS_RECORD.DELPRCQTY, PP_DELDETDETS_RECORD.DPRQTYTHIS)
+                                        -  FT_PK_LITAVGPRICE.RET_OTHCHGS_APP_DD(    PP_DELDETDETS_RECORD.DELRECNO, PP_DELDETDETS_RECORD.DELQTY,    PP_DELDETDETS_RECORD.DPRQTYTHIS);
                                 END;
                                 END IF;
                             END IF;
@@ -462,11 +462,11 @@ FUNCTION RET_MULTI  ( V_ALLOCBY in NUMBER, V_PRCWEIGHT in NUMBER, V_PRCBOXQTY in
             IF NVL(V_PRCWEIGHT,0) > 0.009 THEN
                 V_RET_MULTI := V_PRCWEIGHT;                 
             END IF;                
-        ELSIF  NVL(V_ALLOCBY,0) = 2 THEN    -- EACH     
+        ELSIF  NVL(V_ALLOCBY,0) = 3 THEN    -- EACH     
             IF NVL(V_PRCBOXQTY,0) > 1 THEN
                 V_RET_MULTI := V_PRCBOXQTY;                 
             END IF;                              
-        ELSIF  NVL(V_ALLOCBY,0) = 3 THEN    -- INNER     
+        ELSIF  NVL(V_ALLOCBY,0) = 4 THEN    -- INNER     
             IF NVL(V_INNERQTY,0) > 1 THEN
                 V_RET_MULTI := V_INNERQTY;                 
             END IF;                               
@@ -520,7 +520,8 @@ FUNCTION RET_DISC_APP     ( V_DELRECNO in NUMBER, V_DPRRECNO in NUMBER, V_TOTQTY
                     VAR_DISC := 0;                 
                 WHEN OTHERS THEN
                     NULL;
-                    RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - RET_DISC_APP '); 
+                    --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - RET_DISC_APP '); 
+                    FT_PK_ERRORS.LOG_AND_STOP;                        
                     VAR_LCONT := 0;
             END;
         ELSE
@@ -536,7 +537,8 @@ FUNCTION RET_DISC_APP     ( V_DELRECNO in NUMBER, V_DPRRECNO in NUMBER, V_TOTQTY
                     VAR_DISC := 0;                 
                 WHEN OTHERS THEN
                     NULL;
-                    RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - RET_DISC_APP-DPRRECNO '); 
+                    --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - RET_DISC_APP-DPRRECNO '); 
+                    FT_PK_ERRORS.LOG_AND_STOP;                        
                     VAR_LCONT := 0;
             END;
             
@@ -597,7 +599,8 @@ FUNCTION RET_REBATE_APP     ( V_DELRECNO in NUMBER, V_DPRRECNO in NUMBER, V_TOTQ
                     VAR_REBATE := 0;                 
                 WHEN OTHERS THEN
                     NULL;
-                    RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - RET_REBATE_APP '); 
+                    --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - RET_REBATE_APP '); 
+                    FT_PK_ERRORS.LOG_AND_STOP;                        
                     VAR_LCONT := 0;
             END;
         ELSE
@@ -613,7 +616,8 @@ FUNCTION RET_REBATE_APP     ( V_DELRECNO in NUMBER, V_DPRRECNO in NUMBER, V_TOTQ
                     VAR_REBATE := 0;                 
                 WHEN OTHERS THEN
                     NULL;
-                    RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - RET_REBATE_APP- DPRRECNO '); 
+                    --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - RET_REBATE_APP- DPRRECNO '); 
+                    FT_PK_ERRORS.LOG_AND_STOP;                        
                     VAR_LCONT := 0;
             END;
         
@@ -677,7 +681,8 @@ FUNCTION RET_OTHCHGS_APP     ( V_DELRECNO in NUMBER, V_DPRRECNO in NUMBER, V_TOT
                     VAR_OTHCHGS := 0;                 
                 WHEN OTHERS THEN
                     NULL;
-                    RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - RET_OTHCHGS_APP '); 
+                    --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - RET_OTHCHGS_APP '); 
+                    FT_PK_ERRORS.LOG_AND_STOP;                        
                     VAR_LCONT := 0;
             END;
         ELSE
@@ -695,7 +700,8 @@ FUNCTION RET_OTHCHGS_APP     ( V_DELRECNO in NUMBER, V_DPRRECNO in NUMBER, V_TOT
                     VAR_OTHCHGS := 0;                 
                 WHEN OTHERS THEN
                     NULL;
-                    RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - RET_OTHCHGS_APP -DPRRECNO '); 
+                    --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - RET_OTHCHGS_APP -DPRRECNO '); 
+                    FT_PK_ERRORS.LOG_AND_STOP;                        
                     VAR_LCONT := 0;
             END;            
         END IF;
@@ -754,7 +760,8 @@ FUNCTION RET_OTHCHGS_APP_DD     ( V_DELRECNO in NUMBER, V_TOTQTY in NUMBER, V_AP
                     VAR_OTHCHGS_DD := 0;                 
                 WHEN OTHERS THEN
                     NULL;
-                    RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -BSDL_PK_LITAVGPRICE - VAR_OTHCHGS_DD '); 
+                    --RAISE_APPLICATION_ERROR(-20002, 'Oracle Package -FT_PK_LITAVGPRICE - VAR_OTHCHGS_DD '); 
+                    FT_PK_ERRORS.LOG_AND_STOP;                        
                     VAR_LCONT := 0;
             END;
         END IF;
@@ -858,7 +865,7 @@ END LITAVGPRICE_FRIG ;
 ---*******************************************************************************************************************************************    
 -- THIS IS A FRIG THAT POPUALTES ANY ALLOCLITITENO, VALUES IN ALLOCATE THAT MAY HAVE BEEN MISSED
 -- I WOULD HOPE THAT IT PICKS NOTHING UP
--- DO NOT THINK THE PREPACK STUFF IS RELAVENT BUTTHIS COULD PROVE WRONG IN THE LONG TERM      
+-- DO NOT THINK THE PREPACK STUFF IS RELAVENT BUT THIS COULD PROVE WRONG IN THE LONG TERM      
 ---*******************************************************************************************************************************************    
     PROCEDURE WRITEMISSINGALLOCDETS   IS
     BEGIN
@@ -874,7 +881,8 @@ END LITAVGPRICE_FRIG ;
                NULL;
            WHEN OTHERS THEN
                 NULL;
-                RAISE_APPLICATION_ERROR(-20001, 'Oracle Package -BSDL_PK_LITAVGPRICE- WRITEMISSINGALLOCDETS');
+                --RAISE_APPLICATION_ERROR(-20001, 'Oracle Package -FT_PK_LITAVGPRICE- WRITEMISSINGALLOCDETS');
+                FT_PK_ERRORS.LOG_AND_STOP;                        
         END;
     END WRITEMISSINGALLOCDETS;  
 
