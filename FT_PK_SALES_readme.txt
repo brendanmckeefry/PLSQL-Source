@@ -23,6 +23,19 @@
 ****  
 *********************************************************************************
 
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.3
+	Body Version 1.0.4
+
+	Modified by: Brendan McKeefry
+	Modified on: 27/01/2016      	
+	Modified Log: 	
+	Changes Made:      
+	1) Put an error trap around the DOFT_PK_DISCOUNTS.DO_DISCOUNTS
+
+
 *********************************************************************************	                                        
 
 	Spec Version 1.0.3
