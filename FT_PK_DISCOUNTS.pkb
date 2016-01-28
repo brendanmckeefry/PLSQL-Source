@@ -1,4 +1,4 @@
-CREATE OR REPLACE PACKAGE BODY FT_PK_DISCOUNTS AS
+create or replace PACKAGE BODY FT_PK_DISCOUNTS AS
   --#region Global Body Variables
   cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
   RATEBYBOX CONSTANT NUMBER(1) :=1;
@@ -401,6 +401,7 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_DISCOUNTS AS
     FROM IteChg
     WHERE IteChg.DprRecNo   = DeliveryDetail.DprRecNo
     AND IteChg.CtyNo      = ctyNoToUse
+    AND IteChg.ExcRecNo is null
     AND IteChg.IchDisType = inSeqNo;
     -- If this exists update it and add it to the UPDATE ITECHG_RECS
     OldIchAppAmt := Itechg_Rec.IchAppAmt;
@@ -423,6 +424,16 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_DISCOUNTS AS
   EXCEPTION
   WHEN NO_DATA_FOUND THEN
     RETURN false;
+  WHEN TOO_MANY_ROWS THEN
+    -- There is more than one row has happened before so will delete them all and return false which will re-write them
+    Delete FROM IteChg
+    WHERE IteChg.DprRecNo   = DeliveryDetail.DprRecNo
+    AND IteChg.CtyNo      = ctyNoToUse
+    AND IteChg.ExcRecNo is null
+    AND IteChg.IchDisType = inSeqNo;
+    RETURN false;
+  WHEN OTHERS THEN
+    FT_PK_ERRORS.LOG_AND_STOP;
   END FIND_ITECHG;
   -- WRITE_ITECHG creates a new itechg record and adds it to the table for inserting into the db
   PROCEDURE WRITE_ITECHG(ThisOnSi IN DisRates.ThisOn%TYPE,ThisSeqNo In Itechg.IchDisType%type, InIchPcntOrRate IN itechg.IchPcntOrRate%type,
@@ -554,8 +565,8 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_DISCOUNTS AS
             IF not DeliveryDetail.DELQTYPER = 1 THEN
               ReqdRec := False;
             ELSE
-              IF ABS(DeliveryDetail.Price) < 0.009 THEN  -- if 0.00 then check if the delivery is FOC and the Rate is applicable
-                IF NOT ((DeliveryDetail.DELFREEOFCHG = 1) AND (DiscountRates(Rate).ApplyRebsToFoc = 1)) then
+              IF ((ABS(DeliveryDetail.Price) < 0.009) and (DeliveryDetail.DELFREEOFCHG = 1))  THEN  -- if 0.00 then check if the delivery is FOC and the Rate is applicable
+                IF NOT (DiscountRates(Rate).ApplyRebsToFoc = 1) then
                   ReqdRec := False;
                 END IF;
               END IF;
@@ -676,7 +687,7 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_DISCOUNTS AS
       ReqdRec := true;
       NewIchAppAmt := 0.00;
       OldIchAppAmt := 0.00;
-      IF NewDeliveryDetail.DPRISPRICEADJONLY > 0 then
+      IF (NewDeliveryDetail.DPRISPRICEADJONLY  > 0 and (NewDeliveryDetail.DPRISPRICEADJONLY=1)) then
         -- Check that this is for a Percentage discount
         IF ITECHG.IchDisType < ITEBOXDISC or ITECHG.IchDisType > ITESTDUNITDISC THEN
           ReqdRec := false;
@@ -805,4 +816,3 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_DISCOUNTS AS
   END DO_DISCOUNTS;
 
 END FT_PK_DISCOUNTS;
-/
