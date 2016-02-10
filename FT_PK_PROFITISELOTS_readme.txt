@@ -26,6 +26,20 @@
 *********************************************************************************	                                        
 
 	Spec Version 1.0.1
+	Body Version 1.0.5
+
+	Modified by: Arshad Din
+	Modified on: 10/02/2016
+	Modified Log: 
+	Changes Made:      
+	1) 15791 - See COMMENT 
+		   - PREVPROFIT IS SET TO EQUAL PROFIT SO THAT THE REOPENED FLAG IS NOT SET TO TRUE,
+		   THIS IS SO THAT CLEARED DOWN OVERSOLD PO's REMAIN PROFITISED
+*********************************************************************************
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
 	Body Version 1.0.4
 
 	Modified by: Brendan McKeefry
