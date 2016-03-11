@@ -1,7 +1,7 @@
 SET DEFINE OFF;
     CREATE OR REPLACE PACKAGE BODY FT_PK_STOCKDISSECTION
     AS
-      cVersionControlNo   VARCHAR2(12) := '1.0.9'; -- Current Version Number
+      cVersionControlNo   VARCHAR2(12) := '1.0.10'; -- Current Version Number
 
       --VARIABLES FOR OVER SOLD DETAILS
       GLBALLOCNO                    NUMBER(10)        :=0;
@@ -2281,8 +2281,8 @@ SET DEFINE OFF;
               DLVTRANSSHIP IS NOT NULL
               OR
               TRANSFERFLG IS NOT NULL
-              OR
-              INTERDEPTFLAG IS NOT NULL
+              
+              --OR INTERDEPTFLAG IS NOT NULL
               OR
               NVL(DLVISMKTSALE, 0) = 0
               )

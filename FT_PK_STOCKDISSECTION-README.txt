@@ -20,6 +20,20 @@
 DISSECTDELIVERY  
 
 
+
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.3
+ ****  	Body Version 1.0.10
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     11/03/2016
+ ****  	Last Modified Log:    
+ ****  	Change Made:          
+	(1)	Allow interdepartment sales to be dissected
+	commented out the followign 
+		--OR INTERDEPTFLAG IS NOT NULL
+
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.3
  ****  	Body Version 1.0.9
