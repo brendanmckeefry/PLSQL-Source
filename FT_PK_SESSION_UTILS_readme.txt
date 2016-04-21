@@ -23,6 +23,20 @@
 ****  
 *********************************************************************************
 
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
+  	Body Version 1.0.3                            
+
+	Modified by: Brendan McKeefry
+	Modified on: 21/04/2016      	
+	Modified Log: 16214
+	Changes Made:      
+	1) Changed the GET_FT_LOGONNO to get the LOGONNO using the  G_AUDSID       not the G_SID (mistake in previous change)
+
+SELECT MIN(LOGONNO) INTO G_LOGONNO FROM USERSESSNOLOG WHERE ORACLESESSRECNO = G_SID;
+changed to 
+SELECT MIN(LOGONNO) INTO G_LOGONNO FROM USERSESSNOLOG WHERE ORACLESESSRECNO = G_AUDSID;
 
 *********************************************************************************	                                        
 
