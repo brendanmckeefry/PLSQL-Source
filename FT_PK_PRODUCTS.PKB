@@ -1,5 +1,16 @@
-create or replace PACKAGE BODY FT_PK_PRODUCTS
-AS
+CREATE OR REPLACE PACKAGE BODY FT_PK_PRODUCTS AS
+
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+
+FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
+  IS
+  BEGIN
+    IF  IN_BODYORSPEC = CONST.C_SPEC THEN
+      RETURN cSpecVersionControlNo;
+    ELSE  
+      RETURN cVersionControlNo;
+    END IF;                
+  END CURRENTVERSION;
 
 FUNCTION  GETPRDSHORTCODE(  In_PrcPrdNo     IN NUMBER,
                             In_SalOffNo     IN NUMBER       )
@@ -29,7 +40,9 @@ FUNCTION  GETPRDSHORTCODE(  In_PrcPrdNo     IN NUMBER,
                 SELECT TRIM(SOSHORTCODE) INTO V_PRDSHORTCODE
                 FROM PRDRECTOSO
                 WHERE PRDRECTOSO.PRCPRDNO   = In_PrcPrdNo
-                AND PRDRECTOSO.SALOFFNO     = In_SalOffNo;
+                AND PRDRECTOSO.SALOFFNO     = IN_SALOFFNO
+                AND PRDRECTOSO.ACTIVE = 1
+                ;
             EXCEPTION
             WHEN NO_DATA_FOUND THEN
                 NULL;
@@ -106,7 +119,9 @@ FUNCTION  ISPRDFORSALESOFFICE(  In_PrcPrdNo     IN NUMBER,
                 SELECT DISTINCT  1 INTO V_ISFORSO
                 FROM PRDRECTOSO
                 WHERE PRDRECTOSO.PRCPRDNO   = In_PrcPrdNo
-                AND PRDRECTOSO.SALOFFNO     = In_SalOffNo;
+                AND PRDRECTOSO.SALOFFNO     = IN_SALOFFNO
+                AND PRDRECTOSO.ACTIVE = 1
+                ;
             EXCEPTION
             WHEN NO_DATA_FOUND THEN
                 NULL;
@@ -141,3 +156,4 @@ BEGIN
 
 
 END FT_PK_PRODUCTS;
+/
