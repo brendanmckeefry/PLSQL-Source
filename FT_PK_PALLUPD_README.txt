@@ -26,6 +26,19 @@
 *********************************************************************************	                                        
 
 	Spec Version 1.0.0
+	Body Version 1.0.1
+
+	Modified by: Brendan McKeefry
+	Modified on: 03/05/2016      
+	Modified Log: 	15917
+	Changes Made:      
+	Now takes into account the STOCLOC.DEFSPLITAREAIN
+	If the allocation is for Boxes then any stock in this location are ignored 
+	If the allocation is for splits then ONLY stock in this location is picked up 
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.0
 	Body Version 1.0.0
 
 	Modified by: Brendan McKeefry

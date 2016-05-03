@@ -4,7 +4,7 @@ SET DEFINE OFF;
 CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
 
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
 
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
@@ -27,7 +27,8 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
                              IN_ISFROMTKTBK IN NUMBER,
                              IN_ALLOCTRANIN IN VARCHAR2,
                              IN_NOTDPTNO IN NUMBER,
-                             IN_SMNNO IN NUMBER 
+                             IN_SMNNO IN NUMBER,
+                             IN_QTYPER IN DELTOALL.QTYPER%TYPE,
                              ) AS  PRAGMA AUTONOMOUS_TRANSACTION;
     V_CONT                  NUMBER(1) := 1;
     V_SQLSTR                VARCHAR(32675);
@@ -196,6 +197,18 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
          BEGIN
             V_SQLSTR := V_SQLSTR || '          OR EXISTS (SELECT STOCLOC.DEFPREPACKAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFPREPACKAREAIN)  '; 
          END;
+         
+         IF NVL(IN_QTYPER,0) = 1  THEN
+         BEGIN
+         -- if we are looking at stock for boxes and they have set up a default split in area then do not show 
+            V_SQLSTR := V_SQLSTR || '          OR EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
+         END;
+         ELSE
+         BEGIN
+          -- if we are looking at stock for splits and they have set up a default split in area then ONLY not show the split area stock 
+            V_SQLSTR := V_SQLSTR || '          OR NOT EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
+         END;
+         
          END IF; 
          
          V_SQLSTR := V_SQLSTR || '     )) ' 
