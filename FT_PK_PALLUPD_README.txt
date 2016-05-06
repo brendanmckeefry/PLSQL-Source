@@ -25,7 +25,7 @@
 
 *********************************************************************************	                                        
 
-	Spec Version 1.0.0
+	Spec Version 1.0.1
 	Body Version 1.0.1
 
 	Modified by: Brendan McKeefry
