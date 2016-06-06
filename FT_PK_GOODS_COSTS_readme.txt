@@ -22,6 +22,17 @@
 ****  	Original Log Number: 7510                
 ****  
 *********************************************************************************
+*********************************************************************************
+
+	Spec Version 1.0.1
+	Body Version 1.0.4
+
+	Modified by: Arshad Din
+	Modified on: 06/05/2016      	
+	Modified Log: 16148
+	Changes Made:      
+	1) line 314 added: The AutoPO_Costs is recalled so that % of cost Acruals can be recalculated.
+
 *********************************************************************************	                                        
 
 	Spec Version 1.0.1
