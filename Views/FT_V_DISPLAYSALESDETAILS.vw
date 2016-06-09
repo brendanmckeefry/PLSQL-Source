@@ -1,10 +1,12 @@
 --########################################################################################################
 -- View for Sales Details   -     Used for Entering Delivery lines into sales screens   
 --########################################################################################################
+--########################################################################################################
+-- View for Sales Details   -     Used for Entering Delivery lines into sales screens   
+--########################################################################################################
 
 -- DROP VIEW FT_V_DISPLAYSALESDETAILS;
 
-/* Formatted on 18/12/2014 14:14:51 (QP5 v5.115.810.9015) */
 CREATE OR REPLACE FORCE VIEW FT_V_DISPLAYSALESDETAILS
 (
    ACTCSTCODE,
@@ -68,6 +70,7 @@ CREATE OR REPLACE FORCE VIEW FT_V_DISPLAYSALESDETAILS
    PRCDESCRIPTION,
    PRCPRDREF,
    PRCSHORTDESC,
+   CLIENTPRODDESCRIPTION,
    DEFAULTPRD,
    POWONO,
    LOTNO,
@@ -338,7 +341,8 @@ AS
             --PRDREC.PRCSHORTDESC,
             FT_PK_PRODUCTS.GETPRDSHORTCODE (DELDET.DELPRCPRDNO,
                                             DELHED.DLVSALOFFNO)
-               PRCSHORTDESC,
+               Prcshortdesc,
+            (SELECT PPCPRDDESC FROM PRCCSTINFO WHERE PPCCLTRECNO = DELDET.PPCCLTRECNO)   CLIENTPRODDESCRIPTION,
             PRDREC.DEFAULTPRD,
             -- BULlSHIT STOCK ONES
             NULL POWONO,
@@ -354,4 +358,4 @@ AS
             AND DELDET.DELPRCPRDNO = PRDREC.PRCPRDNO;
 -- AND DELHED.DLVORDNO = 222929;;
 
-COMMENT ON TABLE FT_V_DISPLAYSALESDETAILS IS  '11.0.1'; -- cVersionControlNo 
+COMMENT ON TABLE FT_V_DISPLAYSALESDETAILS IS  '11.0.2'; -- cVersionControlNo 
