@@ -17,12 +17,25 @@
  ****  	Date: AUG 2014                          
  ****  	Original Log Number: 	                
  ****************************************************************************************************** 
- ****  	Spec Version 1.0.0
- ****  	Body Version 1.0.0
  ****************************************************************************************************** 
 
  ****************************************************************************************************** 
- ****  	Version 1.0.0                            
+ ****  	   Spec Version 1.0.1
+ ****  	   Body Version 1.0.1                             
+ *********************************************************************************	                                        
+	Modified by: Brendan McKeefry
+	Modified on: 13/07/2016      	
+	Modified Log: 
+	Changes Made:      
+	1) Added then following methods 
+
+    REPAIR_ALLTOARE;            -- THIS METHOD FIXES ANY ISSUES THAT MAY BE IN THE ALLTOARE TABLE  - CAN BE XPANDED 
+    REMOVE_INVALIDALLOCATES;    -- THIS METHOD REMOVES ANY ALLOCATE RECORDS THAT ARE IN NO OTHER TABLES
+    REPAIR_ALLOCATES           -- THIS METHOD REPAIRS any ALLOCATE records with negative qties
+
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.0
+ ****  	Body Version 1.0.0
  ****************************************************************************************************** 
  ****  	                    
 	Added then following methods 

@@ -1,7 +1,7 @@
 SET DEFINE OFF;
     CREATE OR REPLACE PACKAGE BODY FT_PK_STOCKDISSECTION
     AS
-      cVersionControlNo   VARCHAR2(12) := '1.0.10'; -- Current Version Number
+      cVersionControlNo   VARCHAR2(12) := '1.0.11'; -- Current Version Number
 
       --VARIABLES FOR OVER SOLD DETAILS
       GLBALLOCNO                    NUMBER(10)        :=0;
@@ -1072,9 +1072,9 @@ SET DEFINE OFF;
 
 
                 UPDATE STKDISS_DETS_ONALLOC ONALLOC
-                SET DELQTY_BOXEQUIV = CEIL(DELDET_DALQTY/(SELECT (CASE ONALLOC.DELQTYPER WHEN   2 THEN PRCWEIGHT
-                                                                      WHEN   3 THEN PrcBoxQty
-                                                                      ELSE   InnerQty
+                SET DELQTY_BOXEQUIV = CEIL(DELDET_DALQTY/(SELECT (CASE ONALLOC.DELQTYPER WHEN   2 THEN (CASE WHEN NVL(PRCWEIGHT,0) < 0.001 THEN 1 ELSE PRCWEIGHT END)
+                                                                      WHEN   3 THEN (CASE WHEN NVL(PRCBOXQTY,0) < 1 THEN 1 ELSE PRCBOXQTY END)
+                                                                      ELSE   (CASE WHEN NVL(INNERQTY,0) < 1 THEN 1 ELSE INNERQTY END)
                                                                       END)
                                                             FROM PRDREC WHERE PRCPRDNO = ((ONALLOC.LITITENO)*-1))
                                            )
@@ -1093,9 +1093,9 @@ SET DEFINE OFF;
 
 
                 UPDATE STKDISS_DETS_ONALLOC ONALLOC
-                SET QTY_APPTOBOX = ROUND(DELDET_DALQTY/(SELECT (CASE ONALLOC.DELQTYPER WHEN   2 THEN PRCWEIGHT
-                                                                      WHEN   3 THEN PrcBoxQty
-                                                                      ELSE   InnerQty
+                SET QTY_APPTOBOX = ROUND(DELDET_DALQTY/(SELECT (CASE ONALLOC.DELQTYPER WHEN   2 THEN (CASE WHEN NVL(PRCWEIGHT,0) < 0.001 THEN 1 ELSE PRCWEIGHT END)
+                                                                      WHEN   3 THEN (CASE WHEN NVL(PRCBOXQTY,0) < 1 THEN 1 ELSE PRCBOXQTY END)
+                                                                      ELSE   (CASE WHEN NVL(INNERQTY,0) < 1 THEN 1 ELSE INNERQTY END)
                                                                       END)
                                                             FROM DELDET, PRDREC
                                                             WHERE ONALLOC.DELRECNO = DELDET.DELRECNO

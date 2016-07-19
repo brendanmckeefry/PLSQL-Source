@@ -1,10 +1,8 @@
-SET DEFINE OFF;
-
- 
+set define off; 
 CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
 
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
 
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
@@ -27,7 +25,8 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
                              IN_ISFROMTKTBK IN NUMBER,
                              IN_ALLOCTRANIN IN VARCHAR2,
                              IN_NOTDPTNO IN NUMBER,
-                             IN_SMNNO IN NUMBER 
+                             IN_SMNNO IN NUMBER,
+                             IN_QTYPER IN DELTOALL.QTYPER%TYPE
                              ) AS  PRAGMA AUTONOMOUS_TRANSACTION;
     V_CONT                  NUMBER(1) := 1;
     V_SQLSTR                VARCHAR(32675);
@@ -198,6 +197,18 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
          END;
          END IF; 
          
+         IF NVL(IN_QTYPER,0) = 1  THEN
+         BEGIN
+         -- if we are looking at stock for boxes and they have set up a default split in area then do not show 
+            V_SQLSTR := V_SQLSTR || '          OR EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
+         END;
+         ELSE
+         BEGIN
+          -- if we are looking at stock for splits and they have set up a default split in area then ONLY not show the split area stock 
+            V_SQLSTR := V_SQLSTR || '          OR NOT EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
+         END;         
+         END IF; 
+         
          V_SQLSTR := V_SQLSTR || '     )) ' 
                       ;
              
@@ -335,7 +346,6 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
 -- this query works out any qty of allocated splits that we might have - split being apport to wgt, each or inner
 -- it also takes those allocated splits and calc the numb of splits that this would create so we have a fig of already created splits
     
-    IF IN_ISFROMTKTBK = 1 THEN
     BEGIN
         V_SQLSTR := ' UPDATE  ' || TRIM(IN_TMPTABNAME) || ' TMPTAB ' ||               
                       ' SET (ACTSPLITQTY_BOX, ACTSPLITQTY_WGT, ACTSPLITQTY_EACH, ACTSPLITQTY_INNER) =  ' ||
@@ -356,14 +366,13 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
                 FT_PK_ERRORS.LOG_AND_STOP;
 
     END;
-    END IF;
+    
 
 -- 14
     --   if we have Splits created in the Ticket Book routines then we will have left-over qtys on those split lines that are available to sell
     --   these lines will not be picked up in the extracted above as their ALLOCBY > 0
     --   i want to pick them up here and get ther values and then they are available in ENTTKTORD_DETS to display
     
-    IF IN_ISFROMTKTBK = 1 THEN      
     BEGIN
         V_SQLSTR := ' UPDATE  ' || TRIM(IN_TMPTABNAME) || ' TMPTAB ' ||
                       ' SET (ALRDY_SPLITQTY_WGT, ALRDY_SPLITQTY_EACH, ALRDY_SPLITQTY_INNER) =  ' || 
@@ -393,8 +402,7 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
                 FT_PK_ERRORS.LOG_AND_STOP;
 
     END;
-    END IF;
-
+    
 
 -- 15
     IF NVL(IN_DALRECORDTYPE,0) > 0

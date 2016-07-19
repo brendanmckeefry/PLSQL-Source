@@ -1,7 +1,7 @@
 ********************************************************************************* 
 ****  
-****   Name : FT_PK_COSTING		Type : PACKAGE
-****   Package to generate automatic costs based upon the costing module.
+****   Name : FT_PK_SESSION_UTILS	Type : PACKAGE
+****   Package used to return Freshtrade specific session details
 ****  
 *********************************************************************************                           
 ****  
@@ -17,34 +17,47 @@
 ****  
 *********************************************************************************  
 ****  	                                        
-****  	Written by Paul Michael Thomas
-****  	Date: Jan 2015                        
-****  	Original Log Number: 7510                
+****  	Written by Brendan McKeefry
+****  	Date: April 2016                        
+****  	Original Log Number:                 
 ****  
 *********************************************************************************
+
+*********************************************************************************	                                        
+
+
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.1
+  	Body Version 1.0.2                             
+
+	Modified by: Brendan McKeefry
+	Modified on: 06/06/2016      	
+	Modified Log: 16477
+	Changes Made:      
+	1) NEW METHOD GETPRODUCTDESCFORLEVEL which takes in a PRDLSTLEVS.lSTLEVRECNO and returns a descrption
 
 
 *********************************************************************************	                                        
 
 	Spec Version 1.0.0
-  	Body Version 1.0.1                            
+  	Body Version 1.0.1                             
 
-	Modified by: Paul Michael Thomas
-	Modified on: 20/05/2016     	
-	Modified Log: 16183	
+	Modified by: Brendan McKeefry
+	Modified on: 22/04/2016      	
+	Modified Log: 15922	
 	Changes Made:      
-	1) Changed so that an previously authorised supplier rebate can be re-calculated. 
-
-*********************************************************************************
+	1) Added New active flag on PRDRECTOSO
 
 *********************************************************************************	                                        
 
 	Spec Version 1.0.0
   	Body Version 1.0.0                             
 
-	Modified by: Paul Michael Thomas
-	Modified on: 01/01/2015      	
-	Modified Log: 7510	
+	Modified by: Brendan McKeefry
+	Modified on: April 2016	
+	Modified Log: 	
 	Changes Made:      
 	1) Renamed package FT_PK_...
 	2) Added version control info

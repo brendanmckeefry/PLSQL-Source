@@ -19,8 +19,6 @@
 
 DISSECTDELIVERY  
 
-
-
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.3
  ****  	Body Version 1.0.10
@@ -33,6 +31,20 @@ DISSECTDELIVERY
 	(1)	Allow interdepartment sales to be dissected
 	commented out the followign 
 		--OR INTERDEPTFLAG IS NOT NULL
+
+
+
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.3
+ ****  	Body Version 1.0.11
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     28/04/2016
+ ****  	Last Modified Log:  	16256 
+ ****  	Change Made:          
+	(1)	was getting a devide by zero error in EXTRACTONALLOC_DETS line 1076 & 1098 due to 0 in 
+		PRCWEIGHT, PRCBOXQTY, InnerQty
 
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.3

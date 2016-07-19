@@ -1,8 +1,6 @@
-SET DEFINE OFF;
-
 CREATE OR REPLACE PACKAGE BODY FT_PK_ALLOCATE_CHECK
 AS
-  CVERSIONCONTROLNO VARCHAR2(12) := '1.0.0'; -- CURRENT VERSION NUMBER
+  CVERSIONCONTROLNO VARCHAR2(12) := '1.0.1'; -- CURRENT VERSION NUMBER
   
     ---*******************************************************************************************************************************************
   -- THIS METHOD CALLS ALL THE OTHERS TO DO A FULL REPAIR OF THE TABLES
@@ -15,6 +13,12 @@ AS
       REPAIR_DELTOALL_FULL();
       -- AFTER THE DELTOALL FIGURES ARE REPAIRED THEN DO THE ALLOCALLOC ONES
       REPAIR_ALLOCALLOC();
+      
+      REPAIR_ALLOCATES();
+    
+      REMOVE_INVALIDALLOCATES();  
+
+      REPAIR_ALLTOARE();  
     EXCEPTION
     WHEN OTHERS THEN
       FT_PK_ERRORS.LOG_AND_STOP;
@@ -178,6 +182,129 @@ AS
       FT_PK_ERRORS.LOG_AND_STOP;
     END;
   END REPAIR_ALLOCALLOC;
+  
+  
+  
+   ---*******************************************************************************************************************************************
+  -- THIS METHOD REPAIR any ALLOCATE records with negative qties
+  ---*******************************************************************************************************************************************
+  PROCEDURE REPAIR_ALLOCATES
+  IS
+  
+  BEGIN
+    BEGIN
+---***---***---***---***---***---***---***---***---***---***---***---***       
+    --    REPAIR any ALLOCATE records with negative qties
+---***---***---***---***---***---***---***---***---***---***---***---***       
+                  -- WIZCHKSTMT 150
+          UPDATE ALLOCATE SET ALLOCQTY = 0 WHERE ALLOCQTY < 0;
+          COMMIT; 
+          UPDATE ALLOCATE SET ALLOCALLOC = 0 WHERE ALLOCALLOC < 0;
+          COMMIT; 
+          UPDATE ALLOCATE SET ALLOCEXP = 0 WHERE ALLOCEXP < 0;
+          COMMIT; 
+          update ALLOCATE set ALLOCPHYSPAL = 0 where ALLOCPHYSPAL < 0;
+          COMMIT; 
+          UPDATE ALLOCATE SET ALLOCEXPPAL = 0 WHERE ALLOCEXPPAL < 0;
+          COMMIT; 
+          update ALLOCATE set ALLOCQTY_SPLIT = 0 where ALLOCQTY_SPLIT < 0;
+          COMMIT; 
+
+    EXCEPTION
+      WHEN OTHERS THEN
+        FT_PK_ERRORS.LOG_AND_STOP;
+    END;
+
+  END REPAIR_ALLOCATES;
+  
+  ---*******************************************************************************************************************************************
+  -- THIS METHOD REMOVES ANY ALLOCATE RECORDS THAT ARE IN NO OTHER TABLES
+  ---*******************************************************************************************************************************************
+  PROCEDURE REMOVE_INVALIDALLOCATES
+  AS
+  CURSOR INVALIDALLOCATES_CUR
+  IS 
+    (SELECT ALLOCNO FROM ALLOCATE
+        WHERE NOT EXISTS (SELECT 1 FROM PALNOLOC WHERE PALLOCALLNO = ALLOCATE.ALLOCNO)
+          and not EXISTS (SELECT 1 FROM deltoall WHERE DALALLOCNO  = ALLOCATE.ALLOCNO)
+          AND NOT EXISTS (SELECT 1 FROM TRANALLOC WHERE TOBEUPDATED = 1 AND TOALLOCNO  = ALLOCATE.ALLOCNO)
+          and not EXISTS (SELECT 1 FROM pretopal WHERE PALEXPALLOCNO  = ALLOCATE.ALLOCNO)
+          AND NOT EXISTS ( SELECT 1 FROM ALLOCATESPLITS WHERE BOXALLOCNO = ALLOCATE.ALLOCNO));
+--AND ALLOCISPREPPACK = 0  ) -- HAVE THIS LINE IN COS SOME PREPACK LINES MAY NOT BE IN THESE ; 
+
+  INVALIDALLOCATES_RECORD INVALIDALLOCATES_CUR%ROWTYPE;
+  
+  BEGIN
+    BEGIN
+---***---***---***---***---***---***---***---***---***---***---***---***       
+    ---    GET ALL THE ALLOCATES THAT DO NOT EXIST ANYWHERE ELSE AND DELETE THEM        
+    ---***---***---***---***---***---***---***---***---***---***---***---***       
+    
+        OPEN  INVALIDALLOCATES_CUR;
+        LOOP
+          FETCH INVALIDALLOCATES_CUR INTO INVALIDALLOCATES_RECORD;
+          EXIT WHEN INVALIDALLOCATES_CUR%NOTFOUND;       
+          BEGIN
+            
+            DELETE FROM ALLOCAUD    WHERE  ALLOCAUD.ALLAUDALLOCNO = INVALIDALLOCATES_RECORD.ALLOCNO;            
+            COMMIT;
+          
+                  -- WIZCHKSTMT 180        
+            DELETE FROM ALLOCATE    WHERE  ALLOCATE.ALLOCNO = INVALIDALLOCATES_RECORD.ALLOCNO
+                                    -- THE FOLLOWING ARE JUST DOUBLE CHECKS IN CASE THE SYSTEM HAD NOT UPDATED THE SUBTABLES
+                                    AND NOT EXISTS (SELECT 1 FROM PALNOLOC WHERE PALLOCALLNO = ALLOCATE.ALLOCNO)
+                                    and not EXISTS (SELECT 1 FROM deltoall WHERE DALALLOCNO  = ALLOCATE.ALLOCNO)
+                                    AND NOT EXISTS (SELECT 1 FROM TRANALLOC WHERE TOBEUPDATED = 1 AND TOALLOCNO  = ALLOCATE.ALLOCNO)
+                                    AND NOT EXISTS (SELECT 1 FROM PRETOPAL WHERE PALEXPALLOCNO  = ALLOCATE.ALLOCNO)
+                                    AND NOT EXISTS ( SELECT 1 FROM ALLOCATESPLITS WHERE BOXALLOCNO = ALLOCATE.ALLOCNO);            
+            COMMIT;                    
+
+          EXCEPTION
+            WHEN OTHERS THEN
+            FT_PK_ERRORS.LOG_AND_STOP;
+          END;
+        END LOOP;
+        CLOSE INVALIDALLOCATES_CUR;
+        
+    EXCEPTION
+      WHEN OTHERS THEN
+        FT_PK_ERRORS.LOG_AND_STOP;
+    END;
+
+  END REMOVE_INVALIDALLOCATES;
+  
+  ---*******************************************************************************************************************************************
+  -- THIS METHOD FIXES ANY ISSUES THAT MAY BE IN THE ALLTOARE
+  ---*******************************************************************************************************************************************
+  PROCEDURE REPAIR_ALLTOARE
+  IS
+  BEGIN
+    BEGIN
+    
+    ---***---***---***---***---***---***---***---***---***---***---***---***       
+    ---    CLEAR ANY ALLTOARE RECORDS WITH NEGATIVE QTIES
+    ---***---***---***---***---***---***---***---***---***---***---***---***       
+    
+      UPDATE ALLTOARE SET AAREPHYSQTY = 0 WHERE AAREPHYSQTY < 0 ;
+      COMMIT;
+      UPDATE ALLTOARE SET AAREPHYSPAL = 0 WHERE AAREPHYSPAL < 0 ;
+      COMMIT;
+      UPDATE ALLTOARE SET AAREEXPQTY = 0 WHERE AAREEXPQTY < 0 ;
+      COMMIT;
+      UPDATE ALLTOARE SET AAREEXPPAL = 0 WHERE AAREEXPPAL < 0 ;
+      COMMIT;
+      UPDATE ALLTOARE SET AAREALLOCQTY = 0 WHERE AAREALLOCQTY < 0 ;
+      COMMIT;
+
+      -- WIZCHKSTMT 201        
+      DELETE FROM ALLTOARE     WHERE NOT EXISTS (SELECT 1 FROM ALLOCATE WHERE ALLOCNO = ALLTOARE.AAREALLOCNO);
+      COMMIT;
+      
+    EXCEPTION
+    WHEN OTHERS THEN
+      FT_PK_ERRORS.LOG_AND_STOP;
+    END;
+  END REPAIR_ALLTOARE;
   
   FUNCTION CURRENTVERSION(
       IN_BODYORSPEC IN INTEGER )
