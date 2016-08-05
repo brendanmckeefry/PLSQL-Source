@@ -23,6 +23,15 @@
 ****  
 *********************************************************************************
 
+	Version 1.0.3
+  	
+
+	Modified by: Brendan Mckeefry
+	Modified on: 05/08/2016      	
+	Modified Log: 
+	Changes Made:      
+	1) ALWAYS MAKE EXCFULLYAUTH = 1 WHEN AMMENDING/INSERTING AN ITECHG THAT IS A RECOVERY
+
 *********************************************************************************	                                        
 
 	Version 1.0.2

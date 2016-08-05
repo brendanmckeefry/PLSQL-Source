@@ -473,8 +473,7 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_COSTING AS
             END IF;
             
             IF FT_PK_ACCOUNTS.ISRECOVCLASS(EXPCHAS_TO_WRITE(L_THISREC).EXCSENCODE) THEN
-              EXPCHAS_TO_WRITE(L_THISREC).ISRECOVERY := 1;
-              EXPCHAS_TO_WRITE(L_THISREC).EXCFULLYAUTH := 1;     -- all recoveries should be flagged to be picked up again         
+              EXPCHAS_TO_WRITE(L_THISREC).ISRECOVERY := 1;              
             ELSE
               EXPCHAS_TO_WRITE(L_THISREC).ISRECOVERY := 0;
             END IF;

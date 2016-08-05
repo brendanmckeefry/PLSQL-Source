@@ -34,8 +34,7 @@
 	Modified Log: 16734
 	Changes Made:      
 	1) Populate the new ISRECOVERY flag on Expcha
-	2) if writing recoveries then reset the FULLYAUTH flag to 1 so that it is picked up 
-	3) change the referenced package name from  BSDL_PKAGE_ACCOUNTS to FT_PK_ACCOUNTS
+	2) change the referenced package name from  BSDL_PKAGE_ACCOUNTS to FT_PK_ACCOUNTS
 
 
 
