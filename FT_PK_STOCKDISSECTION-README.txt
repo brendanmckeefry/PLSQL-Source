@@ -20,6 +20,21 @@
 DISSECTDELIVERY  
 
  ****************************************************************************************************** 
+ ****  	Spec Version 1.0.4
+ ****  	Body Version 1.0.12
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     05/10/2016
+ ****  	Last Modified Log:    16827
+ ****  	Change Made:          
+	(1)	Realised that i needed a method to call that would dissect deliveries without checking the sales office preference -TELESALES_AUTODISSECT
+		so added DISSECTDLV_WITHNOSOPREFCHK
+
+	Turning on that preference means that printing in TELESALES disects the dlv - this is not what we want in all sales offices.
+
+
+ ****************************************************************************************************** 
  ****  	Spec Version 1.0.3
  ****  	Body Version 1.0.10
  ****************************************************************************************************** 

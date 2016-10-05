@@ -36,3 +36,17 @@
 	2) Added version control info
 
 *********************************************************************************
+
+*********************************************************************************	                                        
+
+	Spec Version 1.0.0
+  	Body Version 1.0.1                             
+
+	Modified by: Tim Vivian
+	Modified on: 18/Aug/2016      	
+	Changes Made:      
+	1) Added the database name and server to the email title because it was really
+	bugging us not being able to tell where the email came from!
+	
+
+*********************************************************************************

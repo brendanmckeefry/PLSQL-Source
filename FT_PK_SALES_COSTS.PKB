@@ -465,8 +465,8 @@ BEGIN
 
           if FoundIte = True Then
 
-            if V_IchSpeTo IS NULL Then
-			  if TotToAppFacNu > 0.009 then
+            IF V_ICHSPETO IS NULL THEN
+			  if Abs(TotToAppFacNu) > 0.009 then
 				  TotToAppPerIte := PerLnToAppFacNu * DlvToExp_REC.TotToApp;  -- TotToAppFacNu  TotToApp
 				  TotToAppPerIte := TotToAppPerIte / TotToAppFacNu;
 				  --TotToAppPerIte := TotToAppPerIte.round(2);
@@ -484,7 +484,7 @@ BEGIN
              --NxtIteNo := SP_WIZGETCONTROL('ContIchNo', 1, 'INSERT_ITECHG');
              --Dont do this as rec acquired in FT_PK_COST_WRITES.INSERT_ITECHG;
 
-             if TotToAppFacNu > 0.009 then --??will this handle/do we need to handle negatives?
+             if Abs(TotToAppFacNu) > 0.009 then --??will this handle/do we need to handle negatives?
 							 TotToAppPerIte :=  PerLnToAppFacNu * DlvToExp_REC.TotToApp;
 							 TotToAppPerIte := TotToAppPerIte / TotToAppFacNu;
                TotToAppPerIte := round(TotToAppPerIte, 2);

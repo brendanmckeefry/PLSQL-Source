@@ -1,9 +1,9 @@
 CREATE OR REPLACE PACKAGE BODY FT_PK_EMAIL AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.0'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
 
   MSGINTRO    CONSTANT VARCHAR2(2000) := 'This is a message from the Freshtrade Email Service' || CONST.CR || 'The following items have been flagged for your attention:' || CONST.CR || CONST.CR;
-  MSGREGARDS  CONSTANT VARCHAR2(2000) := CONST.CR || CONST.CR || 'Best Regards,' || CONST.CR || 'The Freshtrade Email Service';
+  MSGREGARDS  CONSTANT VARCHAR2(2000) := CONST.CR || CONST.CR || 'Regards,' || CONST.CR || 'Freshtrade Email Service';
 
   FUNCTION CURRENTVERSION RETURN VARCHAR2
   IS
@@ -17,6 +17,8 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_EMAIL AS
     EMAIL_MSG           CLOB;
     L_NXTEMAILBATCHNO   INTEGER;
     L_EMAILSUBJECT      EMAILTYPES.EMAILSUBJECT%TYPE;
+	L_EMAIL_FROM_SYSTEM EMAILTYPES.EMAILSUBJECT%TYPE;
+  
     CURSOR MSG_TYPES IS SELECT * FROM EMAILTYPES;
     CURSOR MSG_CONTACTS(EMAILTYPE_IN IN INTEGER) IS
       SELECT NVL(EMAILCONTACTS.EMAILADDRESS, LOGONS.EMAILADDRESS) AS EMAILADDRESS
@@ -25,6 +27,10 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_EMAIL AS
         ON EMAILCONTACTS.LOGONNO = LOGONS.LOGONNO
       WHERE EMAILCONTACTS.EMAILTYPERECNO = EMAILTYPE_IN;
   BEGIN
+  
+    SQL_STMT := 'select '' - Database '' || user || '' on '' || instance_name || '' ('' ||host_name||'')'' from v$instance';
+    EXECUTE IMMEDIATE SQL_STMT INTO L_EMAIL_FROM_SYSTEM;
+ 
     FOR MSG_TYPE_REC IN MSG_TYPES LOOP
       BEGIN
         IF MSG_TYPE_REC.EMAILMSGPROC IS NOT NULL THEN
@@ -34,13 +40,13 @@ CREATE OR REPLACE PACKAGE BODY FT_PK_EMAIL AS
 
         IF EMAIL_MSG IS NOT NULL THEN
           L_NXTEMAILBATCHNO := FT_EMAIL_BATCH_SEQ.NEXTVAL;
-          L_EMAILSUBJECT := MSG_TYPE_REC.EMAILSUBJECT || '<' || TO_CHAR(L_NXTEMAILBATCHNO) || '>';
+          L_EMAILSUBJECT := MSG_TYPE_REC.EMAILSUBJECT || ' <' || TO_CHAR(L_NXTEMAILBATCHNO) || '>';
           FOR MSG_CONTACT_REC IN MSG_CONTACTS(MSG_TYPE_REC.EMAILTYPERECNO) LOOP
             BSDL_EMAIL(MSG_TYPE_REC.EMAILFROM, --Sender Address
                        MSG_CONTACT_REC.EMAILADDRESS, -- Recipient Address
                        NULL, -- CC Address
                        NULL, -- BCC Address
-                       L_EMAILSUBJECT, -- Subject
+                       L_EMAILSUBJECT || L_EMAIL_FROM_SYSTEM, -- Subject
                        EMAIL_MSG, -- Message Body
                        NULL); -- Attachment
           END LOOP;
