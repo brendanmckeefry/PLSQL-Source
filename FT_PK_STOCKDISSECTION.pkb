@@ -1,7 +1,7 @@
 SET DEFINE OFF;
     CREATE OR REPLACE PACKAGE BODY FT_PK_STOCKDISSECTION
     AS
-      cVersionControlNo   VARCHAR2(12) := '1.0.11'; -- Current Version Number
+      cVersionControlNo   VARCHAR2(12) := '1.0.12'; -- Current Version Number
 
       --VARIABLES FOR OVER SOLD DETAILS
       GLBALLOCNO                    NUMBER(10)        :=0;
@@ -2248,6 +2248,7 @@ SET DEFINE OFF;
     ---*******************************************************************************************************************************************
     -- SIMPLE PROCEDURE TO UPDATE THE DELIVERY TO DISSECTED IF IT IS VALID  - DOES DELHED AND DELTOALL
     -- THIS DOES ALL VALIDITY CHECKS ON THE DELVIERY AND IF ANY FAIL IT DOESN'T UPDATE THE DELIVERY AND DOESN'T REPORT AN ERROR
+    -- THIS CHECKS THE SALES OFFICE PREFERENCE - TELESALES_AUTODISSECT -- AND THEN CALLS DISSECTDLV_WITHNOSOPREFCHK
     ---*******************************************************************************************************************************************
     PROCEDURE DISSECTDELIVERY  (V_DLVORDNO IN NUMBER) IS
             VAR_NOOFERRS                  NUMBER(10) := 0;
@@ -2268,6 +2269,23 @@ SET DEFINE OFF;
                     VAR_NOOFERRS := 1;
             END;
         END IF;
+        
+        IF VAR_NOOFERRS = 0 THEN
+        BEGIN
+          DISSECTDLV_WITHNOSOPREFCHK(V_DLVORDNO);
+        END;
+        END IF;
+    END DISSECTDELIVERY;
+    
+    ---*******************************************************************************************************************************************
+    -- SIMPLE PROCEDURE TO UPDATE THE DELIVERY TO DISSECTED IF IT IS VALID  - DOES DELHED AND DELTOALL
+    -- THIS DOES ALL VALIDITY CHECKS ON THE DELVIERY AND IF ANY FAIL IT DOESN'T UPDATE THE DELIVERY AND DOESN'T REPORT AN ERROR
+    -- THIS DOES NOT CHECK THE SALES OFFICE PREFERENCE - TELESALES_AUTODISSECT
+    ---*******************************************************************************************************************************************
+    
+    PROCEDURE DISSECTDLV_WITHNOSOPREFCHK  (V_DLVORDNO IN NUMBER) IS
+            VAR_NOOFERRS                  NUMBER(10) := 0;
+        BEGIN
 
         -- ENSURE DELHED IS NOT ALREADY DISSECTED OR IS not at blank or picked status, OR IS A TRANSHIPMENT, TRANSFER, INTERDEPARTMENT LINE & is a market sale
         IF VAR_NOOFERRS = 0 THEN
@@ -2401,9 +2419,10 @@ SET DEFINE OFF;
             END;
         END IF;
 
-    END DISSECTDELIVERY;
+    END DISSECTDLV_WITHNOSOPREFCHK;
 
 
+    
     ---*******************************************************************************************************************************************
     -- SIMPLE PROCEDURE TO UPDATE THE DELIVERY TO DISSECTED IF IT IS VALID  - DOES DELHED AND DELTOALL
     -- THIS DOES ALL VALIDITY CHECKS ON THE DELVIERY AND IF ANY FAIL IT DOESN'T UPDATE THE DELIVERY AND DOESN'T REPORT AN ERROR
