@@ -1,7 +1,16 @@
 create or replace PACKAGE FT_PK_HH
 
 AS
-  cSpecVersionControlNo   VARCHAR2(12) := '1.0.4'; -- Current Version Number For Spec
+  cSpecVersionControlNo   VARCHAR2(12) := '1.0.5'; -- Current Version Number For Spec
+  
+  -- Added VAT to Products and Delivery date to Allocate TV 22Nov16
+  
+    
+  -- Have to call the VAT routine using a UK normal customer.  In this case we are using FESA
+  -- Will need to change for IE database
+  C_DEFAULTVATCUSTOMER INTEGER := 5305;
+  
+   
   C_GENERICREFLAGACTION   VARCHAR2(1)  := 'C';    -- THIS IS USED IN THE REFLAG_ALL PROCEDURE TO DECIDE WHAT TO DO - CAN BE USED TO ALLOW ALL THE ITEMS TO BE INSERTED OR ALL DELETED
      
      -- MASTER flag -- determines if the triggers are in use
@@ -151,5 +160,7 @@ THIS PROCEDURE CALLED FROM TRIGGERS TO WRITE TO HH_TABLE_LASTUSED
   PROCEDURE SET_GENERICREFLAGACTION(IN_OPERATIONTYPE VARCHAR2);   
 
   FUNCTION CURRENTVERSION (IN_BODYORSPEC IN INTEGER := 1) RETURN VARCHAR2;
+  
+  FUNCTION GETVATFORPRODUCT (IN_PRODUCT IN INTEGER, IN_SALESOFFICE IN INTEGER := -32000) RETURN INTEGER;
 
 END FT_PK_HH;

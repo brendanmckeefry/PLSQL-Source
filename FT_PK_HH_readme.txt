@@ -29,3 +29,13 @@
 
 *********************************************************************************
 
+	Spec Version 1.0.5   
+        Body Version 1.0.5                      
+
+	Modified by: Tim Vivian
+	Modified on: 5 Dec 2016      	
+        
+	Incremental mods for changes to handheld and integration with BI (FT_PK_BI)
+
+
+*********************************************************************************
