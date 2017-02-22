@@ -1,8 +1,7 @@
 set define off; 
 CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
 
-
-  cVersionControlNo   VARCHAR2(12) := '1.0.1'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
 
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
@@ -203,9 +202,15 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
             V_SQLSTR := V_SQLSTR || '          OR EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
          END;
          ELSE
+         
          BEGIN
           -- if we are looking at stock for splits and they have set up a default split in area then ONLY not show the split area stock 
-            V_SQLSTR := V_SQLSTR || '          OR NOT EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
+          -- IF THEY HAVE NOT SET UP A DEFAULT SPLIT IN AREA THEN WE WANT TO SHOW THE STOCK LINE
+            --V_SQLSTR := V_SQLSTR || '          OR NOT EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
+            V_SQLSTR := V_SQLSTR || '          OR ALLTOARE.AAREBAYRECNO NOT IN  (SELECT NVL(STOCLOC.DEFSPLITAREAIN, ALLTOARE.AAREBAYRECNO) ';         
+            V_SQLSTR := V_SQLSTR || '                    FROM STOCLOC, WHINTLOC  ';         
+            V_SQLSTR := V_SQLSTR || '                      WHERE ALLTOARE.AAREBAYRECNO = WHINTLOC.STCBAYRECNO  ';         
+            V_SQLSTR := V_SQLSTR || '                      AND WHINTLOC.STCLOC = STOCLOC.STCRECNO ) ';         
          END;         
          END IF; 
          
