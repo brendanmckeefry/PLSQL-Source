@@ -1,9 +1,10 @@
 create or replace PACKAGE BODY FT_PK_HH
 AS
 
-  cVersionControlNo   VARCHAR2(12) := '1.0.5'; -- Current Version Number
+  cVersionControlNo   VARCHAR2(12) := '1.0.6'; -- Current Version Number
   
-  --23Nov16 TV Added Received date to HH_ALLOCATE and VAT to Products
+  --23Nov16 TV Added Received date to HH_ALLOCATE
+  --2Mar17 TV Added more GUID processing
 
 
  CURSOR LASTUSED_CUR(TABLEFLAG_IN NUMBER, SYSTEM_IN VARCHAR2)    
@@ -48,7 +49,8 @@ AS
     ORDER BY 1, 2;	
 	
     LOOKUPS_REC       LOOKUPS_CUR%ROWTYPE;  
-  
+    
+
 
   FUNCTION CURRENTVERSION(IN_BODYORSPEC IN INTEGER ) RETURN VARCHAR2
   IS
@@ -102,6 +104,10 @@ AS
      /*(1)*/ PROCESS_PRDRECS();   
     /*(12)*/ PROCESS_PRDRECTOSO();
     /*(13)*/ PROCESS_VATRATES();
+    
+    /*(34) make sure this happens before the PROCESS_ALLOCATE */
+             PROCESS_HH_GUID();
+        
     /*(19)*/ PROCESS_ALLOCATE();
     /*(18)*/ PROCESS_LOOKUPS();
      
@@ -109,7 +115,7 @@ AS
     /*(28) PROCESS_TKTBK();needs changing */
     /*(29) PROCESS_TKTNT(); no longer required */
     
-    /*(34)*/ PROCESS_HH_GUID();
+
 	
 	/* This gets rid of records not needed by HH but needed by BI */
 	PROCESS_NOT_NEEDED_FILES(C_ACCCURRDESC, C_HH); 
@@ -1441,8 +1447,9 @@ PROCEDURE PROCESS_ACCTOSALOFF AS
   
      /* THIS PROCEDURE TAKES GUID RECORDS FROM HH_TABLE_LASTUSED AND UPDATES TABLES THAT USE THEM LIKE HH_ALLOCATE */
   PROCEDURE PROCESS_HH_GUID AS  
-  BEGIN
-    
+  ALLOCATE_TO_UPDATE INTEGER := -1;
+   BEGIN
+
     OPEN LASTUSED_CUR(C_HH_GUID, C_HH);
     LOOP
       FETCH LASTUSED_CUR INTO LASTUSED_REC;
@@ -1456,10 +1463,21 @@ PROCEDURE PROCESS_ACCTOSALOFF AS
             BEGIN
                IF LASTUSED_REC.UNIQUERECNO = C_LOTITE THEN
                BEGIN
+                  /* Check that the Allocate has not been already created and so will be duplicated  */
+                  Begin
+                    DELETE_HH_ALLOCATE_DUPLICATE(LASTUSED_REC.UNIQUERECNO2);
+                  End; 
                   /* Update Allocate with a changed Lotite.LitRecNo */
-                  UPDATE HH_ALLOCATE
-                  SET HH_ALLOCATE.ALLOCLITITEGUID = (SELECT GUID from HH_GUID where FTTABLEID = LASTUSED_REC.UNIQUERECNO and FTTABLEKEY = LASTUSED_REC.UNIQUERECNO2)
-                  WHERE HH_ALLOCATE.ALLOCLITITENO = LASTUSED_REC.UNIQUERECNO2;
+                  Begin
+                     UPDATE HH_ALLOCATE
+                     SET HH_ALLOCATE.ALLOCLITITEGUID = (SELECT NVL(GUID,SYS_GUID()) from HH_GUID where FTTABLEID = LASTUSED_REC.UNIQUERECNO and FTTABLEKEY = LASTUSED_REC.UNIQUERECNO2)
+                     WHERE HH_ALLOCATE.ALLOCLITITENO = LASTUSED_REC.UNIQUERECNO2;
+                  End;
+                  
+                  /* Set the allocate to re-upload */
+                  Select nvl(max(Allocno),0) into ALLOCATE_TO_UPDATE from hh_allocate where  ALLOCLITITENO = LASTUSED_REC.UNIQUERECNO2;
+                  INSERT_LASTUSED(ALLOCATE_TO_UPDATE,-1, FT_PK_HH.C_ALLOCATE, FT_PK_HH.C_UPDATE);
+                  
                END;
                END IF;
             END;
@@ -1468,7 +1486,7 @@ PROCEDURE PROCESS_ACCTOSALOFF AS
             DELETE_HH_TABLE_LASTUSED(LASTUSED_REC.UNIQUERECNO, LASTUSED_REC.UNIQUERECNO2, LASTUSED_REC.TABLEFLAG, LASTUSED_REC.OPERATIONTYPE, C_HH);
                       
       EXCEPTION
-        WHEN OTHERS THEN
+        WHEN OTHERS THEN 
           ROLLBACK;
           FT_PK_ERRORS.LOG_AND_CONTINUE;
       END;                
@@ -2158,6 +2176,26 @@ PROCEDURE PROCESS_ACCTOSALOFF AS
       FT_PK_ERRORS.LOG_AND_CONTINUE(); 
             
   END DELETE_HH_TABLE_LASTUSED;
+  
+  
+    /*  DELETES A RECORD FROM HH_TABLE_LASTUSED 
+      Changed TV 19Jul16 to only delete a record if all other flags are set to 0.  Need to edit this if
+      the number of flags is ever changed*/    
+  PROCEDURE DELETE_HH_ALLOCATE_DUPLICATE(IN_ALLOCLITITENO INTEGER := -1)
+  AS
+  BEGIN
+      -- Called by PROCESS_HH_GUID. If a duplicate allocate ends up in the database then delete all but one.  
+      DELETE from HH_ALLOCATE H0 where
+      ((Select Count(*) from HH_ALLOCATE H1 where H1.ALLOCLITITENO = IN_ALLOCLITITENO) > 1)
+      AND H0.ALLOCLITITENO = IN_ALLOCLITITENO
+      AND (Select 1 from HH_GUID where HH_GUID.GUID = H0.ALLOCLITITEGUID) IS NULL;
+    EXCEPTION
+    WHEN OTHERS THEN
+      rollback;
+      FT_PK_ERRORS.LOG_AND_CONTINUE(); 
+            
+  END DELETE_HH_ALLOCATE_DUPLICATE;
+  
   
   
   /*  SET THIS TO EITHER C, U D BEFORE CALLING REFLAG PROCEDURE AND THE REFLAG WILL USE THIS TO DETERMINE WHAT TO DO
