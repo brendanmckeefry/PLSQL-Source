@@ -1,4 +1,4 @@
-set define off; 
+SET define off; 
 CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
 
   cVersionControlNo   VARCHAR2(12) := '1.0.2'; -- Current Version Number
@@ -203,14 +203,19 @@ CREATE OR REPLACE PACKAGE BODY  FT_PK_PALLUPD AS
          END;
          ELSE
          
-         BEGIN
+          BEGIN
           -- if we are looking at stock for splits and they have set up a default split in area then ONLY not show the split area stock 
           -- IF THEY HAVE NOT SET UP A DEFAULT SPLIT IN AREA THEN WE WANT TO SHOW THE STOCK LINE
             --V_SQLSTR := V_SQLSTR || '          OR NOT EXISTS (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE ALLTOARE.AAREBAYRECNO = STOCLOC.DEFSPLITAREAIN)  '; 
-            V_SQLSTR := V_SQLSTR || '          OR ALLTOARE.AAREBAYRECNO NOT IN  (SELECT NVL(STOCLOC.DEFSPLITAREAIN, ALLTOARE.AAREBAYRECNO) ';         
-            V_SQLSTR := V_SQLSTR || '                    FROM STOCLOC, WHINTLOC  ';         
-            V_SQLSTR := V_SQLSTR || '                      WHERE ALLTOARE.AAREBAYRECNO = WHINTLOC.STCBAYRECNO  ';         
-            V_SQLSTR := V_SQLSTR || '                      AND WHINTLOC.STCLOC = STOCLOC.STCRECNO ) ';         
+            V_SQLSTR := V_SQLSTR || '          OR (ALLTOARE.AAREBAYRECNO NOT IN  (SELECT STOCLOC.DEFSPLITAREAIN FROM STOCLOC WHERE DEFSPLITAREAIN IS NOT NULL  ';
+            V_SQLSTR := V_SQLSTR || '                                        UNION  ';
+            V_SQLSTR := V_SQLSTR || '                                      SELECT ALLTOARE.AAREBAYRECNO           ';
+            V_SQLSTR := V_SQLSTR || '                                      FROM STOCLOC, WHINTLOC             ';
+            V_SQLSTR := V_SQLSTR || '                                      WHERE ALLTOARE.AAREBAYRECNO = WHINTLOC.STCBAYRECNO          ';
+            V_SQLSTR := V_SQLSTR || '                                      AND WHINTLOC.STCLOC = STOCLOC.STCRECNO   ';
+            V_SQLSTR := V_SQLSTR || '                                      AND STOCLOC.DEFSPLITAREAIN IS NULL  ';
+            V_SQLSTR := V_SQLSTR || '                                      ))   ';
+            
          END;         
          END IF; 
          
