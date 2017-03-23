@@ -1,9 +1,10 @@
 create or replace PACKAGE FT_PK_HH
 
 AS
-  cSpecVersionControlNo   VARCHAR2(12) := '1.0.5'; -- Current Version Number For Spec
+  cSpecVersionControlNo   VARCHAR2(12) := '1.0.6'; -- Current Version Number For Spec
   
   -- Added VAT to Products and Delivery date to Allocate TV 22Nov16
+  -- Added more GUID processing TV 2Mar17 
   
     
   -- Have to call the VAT routine using a UK normal customer.  In this case we are using FESA
@@ -162,5 +163,7 @@ THIS PROCEDURE CALLED FROM TRIGGERS TO WRITE TO HH_TABLE_LASTUSED
   FUNCTION CURRENTVERSION (IN_BODYORSPEC IN INTEGER := 1) RETURN VARCHAR2;
   
   FUNCTION GETVATFORPRODUCT (IN_PRODUCT IN INTEGER, IN_SALESOFFICE IN INTEGER := -32000) RETURN INTEGER;
+  
+  PROCEDURE DELETE_HH_ALLOCATE_DUPLICATE(IN_ALLOCLITITENO INTEGER := -1);
 
 END FT_PK_HH;

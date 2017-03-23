@@ -39,3 +39,15 @@
 
 
 *********************************************************************************
+
+
+	Spec Version 1.0.6   
+        Body Version 1.0.6                      
+
+	Modified by: Tim Vivian
+	Modified on: 3 Mar 2017      	
+        
+	Bug #17334 issues with HH_GUID changing and HH_ALLOCATE 
+
+
+*********************************************************************************
