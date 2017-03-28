@@ -19,6 +19,32 @@
 
 DISSECTDELIVERY  
 
+
+ ****************************************************************************************************** 
+ ****  	Spec Version 1.0.5
+ ****  	Body Version 1.0.13
+ ****************************************************************************************************** 
+ ****  	                                        
+ ****  	Last Modified by:     Brendan McKeefry         		
+ ****  	Last Modified on:     28/03/2017
+ ****  	Last Modified Log:    17731
+ ****  	Change Made:          
+	(1)	Request from TPIE that the delivery can be dissected if the overallocation is not caused by the delivery been dissected
+   - so we hvae phys qty of 20 and 5 deliveries of 5 - when we previously tryed to dissect dlv 1 it would not allow it as it was an overallocated line
+     this has been ammended so that the user can call method ALLOWDISSFOROVERALLOC and this will then allow dlv 1-4 to be dissected
+     Delivery 5 can still not be dissected
+     
+  (2)  changed this line
+      AND TO_DATE(NVL(DLVSHPDATE, SYSDATE), 'DD/MM/YY')  <= TO_DATE(V_UPTODATE, 'DD/MM/YY'))));
+  TO
+      AND TO_CHAR(NVL(DLVSHPDATE, SYSDATE), 'DD/MM/YY')  <= TO_CHAR(V_UPTODATE, 'DD/MM/YY'))));
+  
+    this was because sql developer keeps throwing up the following error
+      ORA-01858: a non-numeric character was found where a numeric was expected
+    
+
+	
+
  ****************************************************************************************************** 
  ****  	Spec Version 1.0.4
  ****  	Body Version 1.0.12
